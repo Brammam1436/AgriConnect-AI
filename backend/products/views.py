@@ -4,24 +4,32 @@ from rest_framework import status
 
 from .models import Product
 from .serializers import ProductSerializer
-from .permissions import IsFarmer
+from .permissions import IsFarmerOrReadOnly
 
 from farmers.models import FarmerProfile
 
 
 class ProductListCreateView(APIView):
 
-    permission_classes = [IsFarmer]
+    permission_classes = [IsFarmerOrReadOnly]
 
     def get(self, request):
 
-        farmer = FarmerProfile.objects.get(
-            user=request.user
-        )
+        if request.user.role == "FARMER":
 
-        products = Product.objects.filter(
-            farmer=farmer
-        ).order_by("-created_at")
+            farmer = FarmerProfile.objects.get(
+                user=request.user
+            )
+
+            products = Product.objects.filter(
+                farmer=farmer
+            ).order_by("-created_at")
+
+        else:
+
+            products = Product.objects.filter(
+                is_available=True
+            ).order_by("-created_at")
 
         serializer = ProductSerializer(
             products,
@@ -59,37 +67,21 @@ class ProductListCreateView(APIView):
 
 class ProductDetailView(APIView):
 
-    permission_classes = [IsFarmer]
+    permission_classes = [IsFarmerOrReadOnly]
 
     def get_product(self, request, pk):
 
         try:
+            return Product.objects.get(id=pk)
 
-            farmer = FarmerProfile.objects.get(
-                user=request.user
-            )
-
-            return Product.objects.get(
-                id=pk,
-                farmer=farmer
-            )
-
-        except (
-            FarmerProfile.DoesNotExist,
-            Product.DoesNotExist
-        ):
-
+        except Product.DoesNotExist:
             return None
 
     def get(self, request, pk):
 
-        product = self.get_product(
-            request,
-            pk
-        )
+        product = self.get_product(request, pk)
 
         if product is None:
-
             return Response(
                 {"detail": "Product not found."},
                 status=status.HTTP_404_NOT_FOUND
@@ -101,16 +93,18 @@ class ProductDetailView(APIView):
 
     def put(self, request, pk):
 
-        product = self.get_product(
-            request,
-            pk
-        )
+        product = self.get_product(request, pk)
 
         if product is None:
-
             return Response(
                 {"detail": "Product not found."},
                 status=status.HTTP_404_NOT_FOUND
+            )
+
+        if product.farmer.user != request.user:
+            return Response(
+                {"detail": "You can only update your own products."},
+                status=status.HTTP_403_FORBIDDEN
             )
 
         serializer = ProductSerializer(
@@ -120,12 +114,9 @@ class ProductDetailView(APIView):
         )
 
         if serializer.is_valid():
-
             serializer.save()
 
-            return Response(
-                serializer.data
-            )
+            return Response(serializer.data)
 
         return Response(
             serializer.errors,
@@ -134,16 +125,18 @@ class ProductDetailView(APIView):
 
     def delete(self, request, pk):
 
-        product = self.get_product(
-            request,
-            pk
-        )
+        product = self.get_product(request, pk)
 
         if product is None:
-
             return Response(
                 {"detail": "Product not found."},
                 status=status.HTTP_404_NOT_FOUND
+            )
+
+        if product.farmer.user != request.user:
+            return Response(
+                {"detail": "You can only delete your own products."},
+                status=status.HTTP_403_FORBIDDEN
             )
 
         product.delete()

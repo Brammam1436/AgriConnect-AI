@@ -11,3 +11,20 @@ class IsFarmer(BasePermission):
             and request.user.is_authenticated
             and request.user.role == "FARMER"
         )
+
+
+class IsFarmerOrReadOnly(BasePermission):
+
+    message = "Only farmers can create, update, or delete products."
+
+    def has_permission(self, request, view):
+
+        # Customers and farmers can read products
+        if request.method in ["GET", "HEAD", "OPTIONS"]:
+            return request.user.is_authenticated
+
+        # Only farmers can create/update/delete
+        return (
+            request.user.is_authenticated
+            and request.user.role == "FARMER"
+        )
