@@ -15,21 +15,31 @@ class ProductListCreateView(APIView):
 
     def get(self, request):
 
-        if request.user.role == "FARMER":
+        products = Product.objects.all().order_by("-created_at")
 
-            farmer = FarmerProfile.objects.get(
-                user=request.user
+        # Search by product name
+        search = request.query_params.get("search")
+
+        if search:
+            products = products.filter(
+                name__icontains=search
             )
 
-            products = Product.objects.filter(
-                farmer=farmer
-            ).order_by("-created_at")
+        # Filter by category
+        category = request.query_params.get("category")
 
-        else:
+        if category:
+            products = products.filter(
+                category__iexact=category
+            )
 
-            products = Product.objects.filter(
-                is_available=True
-            ).order_by("-created_at")
+        # Filter by availability
+        is_available = request.query_params.get("is_available")
+
+        if is_available is not None:
+            products = products.filter(
+                is_available=is_available.lower() == "true"
+            )
 
         serializer = ProductSerializer(
             products,
