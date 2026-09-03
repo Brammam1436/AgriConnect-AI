@@ -5,6 +5,7 @@ from rest_framework import status
 from .models import Product
 from .serializers import ProductSerializer
 from .permissions import IsFarmerOrReadOnly
+from .pagination import ProductPagination
 
 from farmers.models import FarmerProfile
 
@@ -12,10 +13,11 @@ from farmers.models import FarmerProfile
 class ProductListCreateView(APIView):
 
     permission_classes = [IsFarmerOrReadOnly]
+    pagination_class = ProductPagination
 
     def get(self, request):
 
-        products = Product.objects.all().order_by("-created_at")
+        products = Product.objects.all()
 
         # Search by product name
         search = request.query_params.get("search")
@@ -41,12 +43,38 @@ class ProductListCreateView(APIView):
                 is_available=is_available.lower() == "true"
             )
 
-        serializer = ProductSerializer(
+        # Sorting
+        sort = request.query_params.get("sort")
+
+        if sort == "price_low":
+            products = products.order_by("price_per_kg")
+
+        elif sort == "price_high":
+            products = products.order_by("-price_per_kg")
+
+        elif sort == "oldest":
+            products = products.order_by("created_at")
+
+        else:
+            # Default: newest products first
+            products = products.order_by("-created_at")
+
+        # Pagination
+        paginator = self.pagination_class()
+
+        page = paginator.paginate_queryset(
             products,
+            request
+        )
+
+        serializer = ProductSerializer(
+            page,
             many=True
         )
 
-        return Response(serializer.data)
+        return paginator.get_paginated_response(
+            serializer.data
+        )
 
     def post(self, request):
 
