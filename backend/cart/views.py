@@ -1,6 +1,5 @@
-from django.shortcuts import render
+from decimal import Decimal, InvalidOperation
 
-# Create your views here.
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -9,7 +8,6 @@ from .models import Cart, CartItem
 from .serializers import CartSerializer
 from .permissions import IsCustomer
 from products.models import Product
-
 
 class CartView(APIView):
 
@@ -35,7 +33,7 @@ class CartItemCreateView(APIView):
         product_id = request.data.get("product")
         quantity = request.data.get("quantity")
 
-        if not product_id or not quantity:
+        if product_id is None or quantity is None:
             return Response(
                 {
                     "detail": "Product and quantity are required."
@@ -64,8 +62,8 @@ class CartItemCreateView(APIView):
             )
 
         try:
-            quantity = float(quantity)
-        except (TypeError, ValueError):
+            quantity = Decimal(str(quantity))
+        except (InvalidOperation, TypeError, ValueError):
             return Response(
                 {
                     "detail": "Quantity must be a valid number."
@@ -73,7 +71,7 @@ class CartItemCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if quantity <= 0:
+        if quantity <= Decimal("0"):
             return Response(
                 {
                     "detail": "Quantity must be greater than 0."
@@ -81,7 +79,7 @@ class CartItemCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if quantity > float(product.available_quantity):
+        if quantity > product.available_quantity:
             return Response(
                 {
                     "detail": "Requested quantity is greater than available quantity."
@@ -103,9 +101,9 @@ class CartItemCreateView(APIView):
 
         if not item_created:
 
-            new_quantity = float(cart_item.quantity) + quantity
+            new_quantity = cart_item.quantity + quantity
 
-            if new_quantity > float(product.available_quantity):
+            if new_quantity > product.available_quantity:
                 return Response(
                     {
                         "detail": "Total cart quantity is greater than available quantity."

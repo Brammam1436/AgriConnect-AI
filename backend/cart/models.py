@@ -1,7 +1,10 @@
+from decimal import Decimal
+
 from django.db import models
 from django.conf import settings
-from products.models import Product
+from django.core.validators import MinValueValidator
 
+from products.models import Product
 
 class Cart(models.Model):
 
@@ -39,7 +42,8 @@ class CartItem(models.Model):
 
     quantity = models.DecimalField(
         max_digits=10,
-        decimal_places=2
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0.01"))]
     )
 
     created_at = models.DateTimeField(
