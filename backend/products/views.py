@@ -6,7 +6,7 @@ from .models import Product
 from .serializers import ProductSerializer
 from .permissions import IsFarmerOrReadOnly
 from .pagination import ProductPagination
-
+from rest_framework.parsers import MultiPartParser, FormParser
 from farmers.models import FarmerProfile
 
 
@@ -14,6 +14,7 @@ class ProductListCreateView(APIView):
 
     permission_classes = [IsFarmerOrReadOnly]
     pagination_class = ProductPagination
+    parser_classes = [MultiPartParser, FormParser]
 
     def get(self, request):
 
@@ -106,6 +107,7 @@ class ProductListCreateView(APIView):
 class ProductDetailView(APIView):
 
     permission_classes = [IsFarmerOrReadOnly]
+    parser_classes = [MultiPartParser,FormParser]
 
     def get_product(self, request, pk):
 

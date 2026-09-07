@@ -14,6 +14,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "name",
             "category",
             "description",
+            "image",
             "price_per_kg",
             "available_quantity",
             "unit",

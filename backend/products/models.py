@@ -1,7 +1,4 @@
 from django.db import models
-
-# Create your models here.
-from django.db import models
 from farmers.models import FarmerProfile, Farm
 
 
@@ -33,38 +30,42 @@ class Product(models.Model):
 
     category = models.CharField(
         max_length=20,
-        choices=Category.choices,
+        choices=Category.choices
     )
 
-    description = models.TextField(
-        blank=True,
+    description = models.TextField(blank=True)
+
+    image = models.ImageField(
+        upload_to="products/",
+        null=True,
+        blank=True
     )
 
     price_per_kg = models.DecimalField(
         max_digits=10,
-        decimal_places=2,
+        decimal_places=2
     )
 
     available_quantity = models.DecimalField(
         max_digits=10,
-        decimal_places=2,
+        decimal_places=2
     )
 
     unit = models.CharField(
         max_length=20,
-        default="kg",
+        default="kg"
     )
 
     is_available = models.BooleanField(
-        default=True,
+        default=True
     )
 
     created_at = models.DateTimeField(
-        auto_now_add=True,
+        auto_now_add=True
     )
 
     updated_at = models.DateTimeField(
-        auto_now=True,
+        auto_now=True
     )
 
     def __str__(self):
