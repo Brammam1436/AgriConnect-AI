@@ -12,3 +12,16 @@ class IsCustomer(BasePermission):
             and request.user.is_authenticated
             and request.user.role == "CUSTOMER"
         )
+
+
+class IsAdmin(BasePermission):
+
+    message = "Only admins can change order status."
+
+    def has_permission(self, request, view):
+
+        return (
+            request.user
+            and request.user.is_authenticated
+            and request.user.role == "ADMIN"
+        )
