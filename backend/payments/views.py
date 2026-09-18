@@ -42,6 +42,15 @@ class CreatePaymentOrderView(APIView):
                 {"detail": "Order is already delivered."},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        if order.status in [
+            Order.Status.CONFIRMED,
+            Order.Status.PROCESSING,
+            Order.Status.SHIPPED,
+        ]:
+            return Response(
+                {"detail": "Order has already been paid or processed."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         existing_payment = Payment.objects.filter(order=order).first()
 
@@ -100,6 +109,14 @@ class VerifyPaymentView(APIView):
             order=order,
             customer=request.user
         )
+        if payment.status == Payment.Status.SUCCESS:
+            return Response(
+                {
+                    "detail": "Payment has already been successfully verified.",
+                    "payment": PaymentSerializer(payment).data,
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         razorpay_payment_id = request.data.get("razorpay_payment_id")
         razorpay_order_id = request.data.get("razorpay_order_id")
@@ -144,10 +161,60 @@ class VerifyPaymentView(APIView):
         payment.status = Payment.Status.SUCCESS
         payment.save()
 
+        if order.status == Order.Status.PENDING:
+            order.status = Order.Status.CONFIRMED
+            order.save(update_fields=["status", "updated_at"])
         return Response(
             {
                 "message": "Payment verified successfully.",
-                "payment": PaymentSerializer(payment).data
+                "payment": PaymentSerializer(payment).data,
+                "order_status": order.status
             },
+            status=status.HTTP_200_OK
+        )
+
+class PaymentDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, order_id):
+        if request.user.role != "CUSTOMER":
+            return Response(
+                {"detail": "Only customers can view payment details."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        order = get_object_or_404(
+            Order,
+            id=order_id,
+            customer=request.user
+        )
+
+        payment = get_object_or_404(
+            Payment,
+            order=order,
+            customer=request.user
+        )
+
+        return Response(
+            PaymentSerializer(payment).data,
+            status=status.HTTP_200_OK
+        )
+
+class PaymentHistoryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != "CUSTOMER":
+            return Response(
+                {"detail": "Only customers can view payment history."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        payments = Payment.objects.filter(
+            customer=request.user
+        ).order_by("-created_at")
+
+        return Response(
+            PaymentSerializer(payments, many=True).data,
             status=status.HTTP_200_OK
         )
