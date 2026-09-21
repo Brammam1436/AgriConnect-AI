@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./App.css";
+import CustomerOrders from "./components/CustomerOrders";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 const RAZORPAY_KEY_ID = "rzp_test_Tb9K0WydM5EmRH";
@@ -8,6 +9,7 @@ function App() {
   // Login states
   const [username, setUsername] = useState("api_customer1");
   const [password, setPassword] = useState("");
+
   const [loggedIn, setLoggedIn] = useState(
     Boolean(localStorage.getItem("access_token"))
   );
@@ -57,14 +59,18 @@ function App() {
       // Save JWT access token in browser
       localStorage.setItem("access_token", data.access);
 
+      // Update React login state
       setLoggedIn(true);
+
       setPassword("");
       setMessage("✅ Login successful!");
 
       setLoading(false);
     } catch (error) {
       console.error(error);
+
       setMessage("Unable to connect to Django backend.");
+
       setLoading(false);
     }
   };
@@ -92,8 +98,10 @@ function App() {
 
       if (!token) {
         setMessage("Please login first.");
+
         setLoggedIn(false);
         setLoading(false);
+
         return;
       }
 
@@ -124,6 +132,7 @@ function App() {
         );
 
         setLoading(false);
+
         return;
       }
 
@@ -139,6 +148,7 @@ function App() {
         );
 
         setLoading(false);
+
         return;
       }
 
@@ -292,7 +302,9 @@ function App() {
               type="submit"
               disabled={loading}
             >
-              {loading ? "Logging in..." : "Login"}
+              {loading
+                ? "Logging in..."
+                : "Login"}
             </button>
           </form>
 
@@ -307,11 +319,13 @@ function App() {
   }
 
   // -----------------------------
-  // PAYMENT SCREEN
+  // CUSTOMER DASHBOARD
   // -----------------------------
   return (
     <div className="app-container">
+
       <div className="payment-card">
+
         <h1>🌱 AgriConnect AI</h1>
 
         <p className="subtitle">
@@ -322,8 +336,21 @@ function App() {
           ✅ Customer logged in
         </p>
 
+        {/* -----------------------------
+            CUSTOMER ORDERS
+            ----------------------------- */}
+        <CustomerOrders />
+
+        {/* -----------------------------
+            RAZORPAY PAYMENT
+            ----------------------------- */}
         <div className="order-box">
-          <h2>Order #{orderId}</h2>
+
+          <h2>Payment Test</h2>
+
+          <p>
+            <strong>Order:</strong> #{orderId}
+          </p>
 
           <p>
             <strong>Product:</strong> Potato
@@ -340,6 +367,7 @@ function App() {
           <p className="total">
             Total: ₹110.00
           </p>
+
         </div>
 
         <button
@@ -363,7 +391,9 @@ function App() {
             {message}
           </p>
         )}
+
       </div>
+
     </div>
   );
 }
