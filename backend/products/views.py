@@ -18,7 +18,12 @@ class ProductListCreateView(APIView):
 
     def get(self, request):
 
-        products = Product.objects.all()
+        if request.user.role == "FARMER":
+            products = Product.objects.filter(
+                farmer__user=request.user
+            )
+        else:
+            products = Product.objects.all()
 
         # Search by product name
         search = request.query_params.get("search")
