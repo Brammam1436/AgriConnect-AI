@@ -2,6 +2,7 @@ import { useState } from "react";
 import "./App.css";
 import CustomerOrders from "./components/CustomerOrders";
 import FarmerDashboard from "./components/FarmerDashboard";
+import AdminDashboard from "./components/AdminDashboard";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 const RAZORPAY_KEY_ID = "rzp_test_Tb9K0WydM5EmRH";
@@ -504,29 +505,22 @@ function App() {
   if (userRole === "ADMIN") {
     return (
       <div className="app-container">
-        <div className="payment-card">
+        <AdminDashboard />
 
-          <h1>🌱 AgriConnect AI</h1>
-
-          <h2>⚙️ Admin Dashboard</h2>
-
-          <p>
-            Welcome, Admin!
-          </p>
-
-          <p>
-            Admin dashboard features
-            will be added later.
-          </p>
-
+        <div className="admin-logout-container">
           <button
             className="logout-button"
             onClick={handleLogout}
           >
             Logout
           </button>
-
         </div>
+
+        {message && (
+          <p className="message">
+            {message}
+          </p>
+        )}
       </div>
     );
   }
