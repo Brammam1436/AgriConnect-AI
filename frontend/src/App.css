@@ -1365,3 +1365,105 @@
   background-color: #fff3cd;
   color: #856404;
 }
+
+/* =========================================
+   AI DEMAND PREDICTION
+   ========================================= */
+
+.farmer-ai-section {
+    margin-top: 35px;
+    padding: 30px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.farmer-ai-section h2 {
+    margin-bottom: 8px;
+    color: #1f2937;
+}
+
+.farmer-ai-section > p {
+    margin-bottom: 25px;
+    color: #6b7280;
+}
+
+.ai-form-group {
+    margin-bottom: 18px;
+}
+
+.ai-form-group label {
+    display: block;
+    margin-bottom: 7px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.ai-form-group select,
+.ai-form-group input {
+    width: 100%;
+    max-width: 350px;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.ai-form-group select:focus,
+.ai-form-group input:focus {
+    outline: none;
+    border-color: #16a34a;
+}
+
+.ai-predict-button {
+    margin-top: 5px;
+    padding: 11px 22px;
+    border: none;
+    border-radius: 6px;
+    background: #16a34a;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ai-predict-button:hover {
+    background: #15803d;
+}
+
+.ai-predict-button:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+}
+
+.ai-error {
+    margin-top: 20px;
+    padding: 12px 15px;
+    background: #fee2e2;
+    color: #991b1b;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.ai-result {
+    margin-top: 25px;
+    padding: 22px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+}
+
+.ai-result h3 {
+    margin-top: 0;
+    margin-bottom: 18px;
+    color: #166534;
+}
+
+.ai-result p {
+    margin: 9px 0;
+    color: #374151;
+}
+
+.ai-result strong {
+    color: #111827;
+}

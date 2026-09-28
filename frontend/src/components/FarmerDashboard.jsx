@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../api/api";
+import FarmerDemandPrediction from "./FarmerDemandPrediction";
 
 function FarmerDashboard() {
     const [products, setProducts] = useState([]);
@@ -632,6 +633,7 @@ function FarmerDashboard() {
                                                 : "Mark Available"}
                                         </button>
                                     </div>
+                                    
 
                                 </div>
 
@@ -641,6 +643,7 @@ function FarmerDashboard() {
                     )}
 
             </div>
+            <FarmerDemandPrediction products={products} />
 
         </div>
     );
