@@ -16,6 +16,7 @@ from .permissions import IsCustomer, IsAdmin
 from cart.models import Cart
 from products.models import Product
 
+from notifications.models import Notification
 
 class OrderListCreateView(APIView):
 
@@ -157,6 +158,34 @@ class OrderListCreateView(APIView):
 
         # Clear cart after successful order creation
         cart.items.all().delete()
+
+        # Create order-created notification
+        Notification.objects.create(
+            user=request.user,
+            notification_type=Notification.NotificationType.ORDER_CREATED,
+            title="Order Created",
+            message=(
+                f"Your order #{order.id} has been "
+                f"created successfully."
+            )
+        )
+
+        # Notify farmers whose products are included in the order
+        farmer_users = set()
+
+        for item in order.items.select_related("product__farmer__user"):
+            farmer_users.add(item.product.farmer.user)
+
+        for farmer_user in farmer_users:
+            Notification.objects.create(
+                user=farmer_user,
+                notification_type=Notification.NotificationType.ORDER_CREATED,
+                title="New Order Received",
+                message=(
+                    f"A new order #{order.id} contains "
+                    f"your product."
+                )
+            )
 
         serializer = OrderSerializer(order)
 
@@ -387,14 +416,50 @@ class OrderStatusUpdateView(APIView):
                 )
 
         order.status = new_status
+        order.save(update_fields=["status", "updated_at"])
 
-        order.save(
-            update_fields=[
-                "status",
-                "updated_at"
-            ]
-        )
+
+        status_notification_map = {
+            Order.Status.CONFIRMED: (
+                Notification.NotificationType.ORDER_CONFIRMED,
+                "Order Confirmed",
+                f"Your order #{order.id} has been confirmed."
+            ),
+            Order.Status.PROCESSING: (
+                Notification.NotificationType.ORDER_PROCESSING,
+                "Order Processing",
+                f"Your order #{order.id} is now being processed."
+            ),
+            Order.Status.SHIPPED: (
+                Notification.NotificationType.ORDER_SHIPPED,
+                "Order Shipped",
+                f"Your order #{order.id} has been shipped."
+            ),
+            Order.Status.DELIVERED: (
+                Notification.NotificationType.ORDER_DELIVERED,
+                "Order Delivered",
+                f"Your order #{order.id} has been delivered."
+            ),
+            Order.Status.CANCELLED: (
+                Notification.NotificationType.ORDER_CANCELLED,
+                "Order Cancelled",
+                f"Your order #{order.id} has been cancelled."
+            ),
+        }
+
+
+        notification_data = status_notification_map.get(new_status)
+
+        if notification_data:
+            notification_type, title, message = notification_data
+
+            Notification.objects.create(
+                user=order.customer,
+                notification_type=notification_type,
+                title=title,
+                message=message
+            )
+
 
         serializer = OrderSerializer(order)
-
         return Response(serializer.data)

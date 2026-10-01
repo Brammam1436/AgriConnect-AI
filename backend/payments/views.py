@@ -11,9 +11,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from orders.models import Order
+from notifications.models import Notification
 from .models import Payment
 from .serializers import PaymentSerializer
-
 
 class CreatePaymentOrderView(APIView):
     permission_classes = [IsAuthenticated]
@@ -151,6 +151,16 @@ class VerifyPaymentView(APIView):
             payment.status = Payment.Status.FAILED
             payment.save(update_fields=["status", "updated_at"])
 
+            Notification.objects.create(
+                user=request.user,
+                notification_type=Notification.NotificationType.PAYMENT_FAILED,
+                title="Payment Failed",
+                message=(
+                    f"Payment for order #{order.id} "
+                    f"could not be verified."
+                )
+            )
+
             return Response(
                 {"detail": "Payment signature verification failed."},
                 status=status.HTTP_400_BAD_REQUEST
@@ -160,6 +170,16 @@ class VerifyPaymentView(APIView):
         payment.razorpay_signature = razorpay_signature
         payment.status = Payment.Status.SUCCESS
         payment.save()
+
+        Notification.objects.create(
+            user=request.user,
+            notification_type=Notification.NotificationType.PAYMENT_SUCCESS,
+            title="Payment Successful",
+            message=(
+                f"Payment for order #{order.id} "
+                f"was completed successfully."
+            )
+        )
 
         if order.status == Order.Status.PENDING:
             order.status = Order.Status.CONFIRMED
