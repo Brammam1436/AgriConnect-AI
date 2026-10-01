@@ -5,6 +5,9 @@ from rest_framework.permissions import IsAuthenticated
 from products.models import Product
 from .ml.predict_demand import predict_demand
 
+from .ml.price_recommendation import recommend_price
+
+
 
 class DemandPredictionView(APIView):
     """
@@ -132,6 +135,67 @@ class DemandPredictionView(APIView):
 
         result["product_name"] = product.name
         result["product_category"] = product.category
+
+        return Response(
+            result
+        )
+
+
+
+class PriceRecommendationView(APIView):
+    """
+    API endpoint for product price recommendation.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, product_id):
+
+        # --------------------------------
+        # 1. Check product
+        # --------------------------------
+
+        try:
+            product = Product.objects.get(
+                id=product_id
+            )
+        except Product.DoesNotExist:
+            return Response(
+                {
+                    "error": "Product not found."
+                },
+                status=404
+            )
+
+        # --------------------------------
+        # 2. Check farmer ownership
+        # --------------------------------
+
+        if request.user.role == "FARMER":
+
+            if product.farmer.user != request.user:
+                return Response(
+                    {
+                        "error": (
+                            "You can only request "
+                            "price recommendations "
+                            "for your own products."
+                        )
+                    },
+                    status=403
+                )
+
+        # --------------------------------
+        # 3. Generate recommendation
+        # --------------------------------
+
+        result = recommend_price(
+            product_id
+        )
+
+        # --------------------------------
+        # 4. Return response
+        # --------------------------------
 
         return Response(
             result

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../api/api";
 import FarmerDemandPrediction from "./FarmerDemandPrediction";
+import FarmerPriceRecommendation from "./FarmerPriceRecommendation";
 
 function FarmerDashboard() {
     const [products, setProducts] = useState([]);
@@ -644,6 +645,8 @@ function FarmerDashboard() {
 
             </div>
             <FarmerDemandPrediction products={products} />
+            
+            <FarmerPriceRecommendation products={products} />
 
         </div>
     );

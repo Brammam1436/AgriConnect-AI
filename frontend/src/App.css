@@ -1467,3 +1467,103 @@
 .ai-result strong {
     color: #111827;
 }
+
+/* =========================================
+   AI PRICE RECOMMENDATION
+   ========================================= */
+
+.farmer-price-section {
+    margin-top: 35px;
+    padding: 30px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.farmer-price-section h2 {
+    margin-bottom: 8px;
+    color: #1f2937;
+}
+
+.farmer-price-section > p {
+    margin-bottom: 25px;
+    color: #6b7280;
+}
+
+.price-form-group {
+    margin-bottom: 18px;
+}
+
+.price-form-group label {
+    display: block;
+    margin-bottom: 7px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.price-form-group select {
+    width: 100%;
+    max-width: 350px;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.price-form-group select:focus {
+    outline: none;
+    border-color: #16a34a;
+}
+
+.price-recommend-button {
+    margin-top: 5px;
+    padding: 11px 22px;
+    border: none;
+    border-radius: 6px;
+    background: #16a34a;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.price-recommend-button:hover {
+    background: #15803d;
+}
+
+.price-recommend-button:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+}
+
+.price-error {
+    margin-top: 20px;
+    padding: 12px 15px;
+    background: #fee2e2;
+    color: #991b1b;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.price-result {
+    margin-top: 25px;
+    padding: 22px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+}
+
+.price-result h3 {
+    margin-top: 0;
+    margin-bottom: 18px;
+    color: #166534;
+}
+
+.price-result p {
+    margin: 9px 0;
+    color: #374151;
+}
+
+.price-result strong {
+    color: #111827;
+}
