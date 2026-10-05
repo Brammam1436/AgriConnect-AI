@@ -22,6 +22,51 @@ class Order(models.Model):
         related_name="orders"
     )
 
+    # Delivery address snapshot
+    # These values are copied from the customer's selected address
+    # when the order is created.
+
+    delivery_name = models.CharField(
+        max_length=100,
+        blank=True
+    )
+
+    delivery_phone = models.CharField(
+        max_length=15,
+        blank=True
+    )
+
+    delivery_address_line1 = models.CharField(
+        max_length=255,
+        blank=True
+    )
+
+    delivery_address_line2 = models.CharField(
+        max_length=255,
+        blank=True
+    )
+
+    delivery_city = models.CharField(
+        max_length=100,
+        blank=True
+    )
+
+    delivery_state = models.CharField(
+        max_length=100,
+        blank=True
+    )
+
+    delivery_postal_code = models.CharField(
+        max_length=10,
+        blank=True
+    )
+
+    delivery_country = models.CharField(
+        max_length=100,
+        default="India",
+        blank=True
+    )
+
     status = models.CharField(
         max_length=20,
         choices=Status.choices,

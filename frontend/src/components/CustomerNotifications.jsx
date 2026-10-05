@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../api/api";
+import "./CustomerNotifications.css";
 
 function CustomerNotifications() {
     const [notifications, setNotifications] = useState([]);

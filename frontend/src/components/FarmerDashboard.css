@@ -1,0 +1,2713 @@
+/* =========================================================
+   AGRICONNECT AI - FARMER DASHBOARD
+   Header / Sidebar / Main Layout / Products / Profile
+========================================================= */
+
+
+/* =========================================================
+   GLOBAL DASHBOARD
+========================================================= */
+
+.farmer-dashboard {
+    min-height: 100vh;
+
+    background: #f4faf5;
+
+    color: #173b22;
+
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Arial,
+        sans-serif;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.farmer-header {
+    position: fixed;
+
+    top: 0;
+    left: 0;
+    right: 0;
+
+    height: 76px;
+
+    background: #ffffff;
+
+    border-bottom: 1px solid #e1eee4;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    padding: 0 30px;
+
+    box-sizing: border-box;
+
+    z-index: 1000;
+
+    box-shadow:
+        0 2px 12px rgba(30, 90, 45, 0.06);
+}
+
+
+/* =========================================================
+   BRAND
+========================================================= */
+
+.farmer-brand-section {
+    display: flex;
+
+    align-items: center;
+
+    gap: 14px;
+}
+
+.farmer-brand-icon {
+    width: 46px;
+    height: 46px;
+
+    border-radius: 12px;
+
+    background: #eaf7ed;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 26px;
+}
+
+.farmer-brand-section h1 {
+    margin: 0;
+
+    font-size: 21px;
+
+    font-weight: 750;
+
+    color: #137333;
+
+    line-height: 1.2;
+}
+
+.farmer-brand-section p {
+    margin: 4px 0 0;
+
+    font-size: 12px;
+
+    color: #718174;
+}
+
+
+/* =========================================================
+   HEADER RIGHT
+========================================================= */
+
+.farmer-header-right {
+    display: flex;
+
+    align-items: center;
+
+    gap: 22px;
+}
+
+
+/* =========================================================
+   NOTIFICATION
+========================================================= */
+
+.farmer-header-notification {
+    position: relative;
+
+    width: 44px;
+    height: 44px;
+
+    border: none;
+
+    border-radius: 50%;
+
+    background: #f3f9f4;
+
+    font-size: 20px;
+
+    cursor: pointer;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+.farmer-header-notification:hover {
+    background: #e5f4e8;
+
+    transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   NOTIFICATION BADGE
+========================================================= */
+
+.farmer-notification-badge {
+    position: absolute;
+
+    top: -2px;
+    right: -1px;
+
+    min-width: 18px;
+    height: 18px;
+
+    padding: 0 5px;
+
+    box-sizing: border-box;
+
+    background: #e53935;
+
+    color: #ffffff;
+
+    border-radius: 20px;
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+}
+
+
+/* =========================================================
+   FARMER PROFILE
+========================================================= */
+
+.farmer-profile {
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+}
+
+.farmer-profile-avatar {
+    width: 40px;
+    height: 40px;
+
+    border-radius: 50%;
+
+    background: #20883d;
+
+    color: #ffffff;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-weight: 700;
+
+    font-size: 17px;
+}
+
+.farmer-profile > div:last-child {
+    display: flex;
+
+    flex-direction: column;
+}
+
+.farmer-profile strong {
+    font-size: 13px;
+
+    color: #173b22;
+}
+
+.farmer-profile span {
+    margin-top: 3px;
+
+    font-size: 11px;
+
+    color: #7b887e;
+}
+
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+.farmer-sidebar {
+    position: fixed;
+
+    top: 76px;
+    left: 0;
+    bottom: 0;
+
+    width: 235px;
+
+    background: #ffffff;
+
+    border-right: 1px solid #e1eee4;
+
+    padding: 28px 15px 20px;
+
+    box-sizing: border-box;
+
+    display: flex;
+
+    flex-direction: column;
+
+    z-index: 900;
+}
+
+
+/* =========================================================
+   SIDEBAR TITLE
+========================================================= */
+
+.farmer-sidebar-title {
+    padding: 0 15px 18px;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    letter-spacing: 0.8px;
+
+    color: #789080;
+}
+
+
+/* =========================================================
+   SIDEBAR NAVIGATION
+========================================================= */
+
+.farmer-sidebar nav {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 7px;
+}
+
+
+/* =========================================================
+   SIDEBAR ITEM
+========================================================= */
+
+.farmer-sidebar-item {
+    width: 100%;
+
+    min-height: 50px;
+
+    border: none;
+
+    border-radius: 11px;
+
+    background: transparent;
+
+    color: #53675a;
+
+    padding: 0 15px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 13px;
+
+    font-size: 14px;
+
+    font-weight: 500;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.farmer-sidebar-item:hover {
+    background: #f1f8f2;
+
+    color: #187536;
+}
+
+.farmer-sidebar-item.active {
+    background: #e4f4e8;
+
+    color: #08752c;
+
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   SIDEBAR ICON
+========================================================= */
+
+.farmer-sidebar-icon {
+    width: 23px;
+
+    font-size: 17px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   SIDEBAR BOTTOM
+========================================================= */
+
+.farmer-sidebar-bottom {
+    margin-top: auto;
+
+    padding-top: 18px;
+
+    border-top: 1px solid #e4ebe5;
+}
+
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+.farmer-sidebar-item.logout {
+    color: #d93636;
+}
+
+.farmer-sidebar-item.logout:hover {
+    background: #fff1f1;
+
+    color: #c62828;
+}
+
+
+/* =========================================================
+   MAIN
+========================================================= */
+
+.farmer-main {
+    margin-left: 235px;
+
+    padding-top: 76px;
+
+    min-height: 100vh;
+
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   DASHBOARD STATUS
+========================================================= */
+
+.farmer-dashboard-status {
+    min-height: 48px;
+
+    display: flex;
+
+    align-items: center;
+
+    padding: 0 32px;
+
+    box-sizing: border-box;
+
+    background: #f7fcf8;
+
+    border-bottom: 1px solid #e6eee7;
+
+    color: #27703d;
+
+    font-size: 13px;
+
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   STATUS DOT
+========================================================= */
+
+.farmer-status-dot {
+    width: 8px;
+    height: 8px;
+
+    margin-right: 9px;
+
+    border-radius: 50%;
+
+    background: #27a844;
+
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   COMPONENT WRAPPER
+========================================================= */
+
+.farmer-component-wrapper {
+    width: 100%;
+
+    max-width: 100%;
+
+    padding: 28px 32px 50px;
+
+    margin: 0 auto;
+
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   PAGE HEADING
+========================================================= */
+
+.farmer-page-heading {
+    display: flex;
+
+    align-items: flex-start;
+
+    justify-content: space-between;
+
+    gap: 20px;
+
+    margin-bottom: 25px;
+}
+
+.farmer-page-heading span {
+    display: block;
+
+    margin-bottom: 6px;
+
+    color: #789080;
+
+    font-size: 10px;
+
+    font-weight: 800;
+
+    letter-spacing: 1px;
+}
+
+.farmer-page-heading h2 {
+    margin: 0;
+
+    color: #173b22;
+
+    font-size: 28px;
+
+    font-weight: 800;
+}
+
+.farmer-page-heading p {
+    margin: 7px 0 0;
+
+    color: #718174;
+
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   FARMER HOME
+========================================================= */
+
+.farmer-home {
+    width: 100%;
+}
+
+
+/* =========================================================
+   WELCOME CARD
+========================================================= */
+
+.farmer-welcome-card {
+    min-height: 170px;
+
+    padding: 30px;
+
+    box-sizing: border-box;
+
+    border: 1px solid #dce9df;
+
+    border-radius: 18px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #ffffff 0%,
+            #f1f9f3 100%
+        );
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 20px;
+
+    box-shadow:
+        0 5px 20px rgba(
+            40,
+            100,
+            50,
+            0.05
+        );
+}
+
+.farmer-welcome-label {
+    color: #21883f;
+
+    font-size: 10px;
+
+    font-weight: 800;
+
+    letter-spacing: 1px;
+}
+
+.farmer-welcome-card h2 {
+    margin: 7px 0 8px;
+
+    color: #173b22;
+
+    font-size: 28px;
+
+    font-weight: 800;
+}
+
+.farmer-welcome-card p {
+    max-width: 650px;
+
+    margin: 0;
+
+    color: #68776d;
+
+    font-size: 13px;
+
+    line-height: 1.6;
+}
+
+.farmer-welcome-icon {
+    width: 90px;
+    height: 90px;
+
+    border-radius: 22px;
+
+    background: #e4f4e8;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 48px;
+
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   STAT GRID
+========================================================= */
+
+.farmer-stat-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 16px;
+
+    margin-top: 20px;
+}
+
+.farmer-stat-card {
+    min-height: 105px;
+
+    padding: 20px;
+
+    box-sizing: border-box;
+
+    background: #ffffff;
+
+    border: 1px solid #e1eee4;
+
+    border-radius: 14px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 14px;
+}
+
+.farmer-stat-icon {
+    width: 46px;
+    height: 46px;
+
+    border-radius: 12px;
+
+    background: #edf8ef;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 21px;
+
+    flex-shrink: 0;
+}
+
+.farmer-stat-card span {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: #718174;
+
+    font-size: 11px;
+
+    font-weight: 600;
+}
+
+.farmer-stat-card strong {
+    color: #173b22;
+
+    font-size: 22px;
+
+    font-weight: 800;
+}
+
+
+/* =========================================================
+   HOME QUICK CARDS
+========================================================= */
+
+.farmer-home-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 18px;
+
+    margin-top: 20px;
+}
+
+.farmer-quick-card {
+    padding: 22px;
+
+    background: #ffffff;
+
+    border: 1px solid #e1eee4;
+
+    border-radius: 15px;
+
+    box-sizing: border-box;
+}
+
+.farmer-card-heading {
+    display: flex;
+
+    align-items: flex-start;
+
+    justify-content: space-between;
+
+    gap: 12px;
+}
+
+.farmer-card-heading span:first-child {
+    color: #789080;
+
+    font-size: 9px;
+
+    font-weight: 800;
+
+    letter-spacing: 0.8px;
+}
+
+.farmer-card-heading h3 {
+    margin: 6px 0 0;
+
+    color: #173b22;
+
+    font-size: 17px;
+}
+
+.farmer-card-icon {
+    width: 40px;
+    height: 40px;
+
+    border-radius: 10px;
+
+    background: #edf8ef;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 20px;
+
+    flex-shrink: 0;
+}
+
+.farmer-quick-card > p {
+    min-height: 60px;
+
+    margin: 16px 0;
+
+    color: #68776d;
+
+    font-size: 12px;
+
+    line-height: 1.6;
+}
+
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+.farmer-primary-button,
+.farmer-secondary-button {
+    min-height: 40px;
+
+    padding: 0 15px;
+
+    border-radius: 9px;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+.farmer-primary-button {
+    border: none;
+
+    background: #21883f;
+
+    color: #ffffff;
+}
+
+.farmer-primary-button:hover {
+    background: #176f31;
+
+    transform: translateY(-1px);
+}
+
+.farmer-secondary-button {
+    border: 1px solid #21883f;
+
+    background: #ffffff;
+
+    color: #21883f;
+}
+
+.farmer-secondary-button:hover {
+    background: #eff8f1;
+
+    transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   PRODUCT FORM
+========================================================= */
+
+.add-product-form {
+    margin-bottom: 25px;
+
+    padding: 24px;
+
+    background: #ffffff;
+
+    border: 1px solid #dce9df;
+
+    border-radius: 15px;
+
+    box-shadow:
+        0 5px 18px rgba(
+            40,
+            100,
+            50,
+            0.05
+        );
+}
+
+.product-form-heading {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 15px;
+
+    margin-bottom: 20px;
+}
+
+.product-form-heading span {
+    color: #789080;
+
+    font-size: 9px;
+
+    font-weight: 800;
+
+    letter-spacing: 0.8px;
+}
+
+.product-form-heading h3 {
+    margin: 5px 0 0;
+
+    color: #173b22;
+
+    font-size: 20px;
+}
+
+.product-form-close {
+    width: 34px;
+    height: 34px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    background: #f3f8f4;
+
+    color: #53675a;
+
+    cursor: pointer;
+
+    font-size: 15px;
+}
+
+.product-form-close:hover {
+    background: #e9f3eb;
+
+    color: #c62828;
+}
+
+
+/* =========================================================
+   PRODUCT FORM GRID
+========================================================= */
+
+.product-form-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 16px;
+}
+
+.product-form-field {
+    display: flex;
+
+    flex-direction: column;
+}
+
+.product-form-field.full-width {
+    grid-column: 1 / -1;
+}
+
+.product-form-field label {
+    margin-bottom: 7px;
+
+    color: #263c2d;
+
+    font-size: 12px;
+
+    font-weight: 700;
+}
+
+.product-form-field input,
+.product-form-field select,
+.product-form-field textarea {
+    width: 100%;
+
+    box-sizing: border-box;
+
+    border: 1px solid #cddbd0;
+
+    border-radius: 8px;
+
+    background: #ffffff;
+
+    color: #263c2d;
+
+    font-family: inherit;
+
+    font-size: 13px;
+
+    outline: none;
+}
+
+.product-form-field input,
+.product-form-field select {
+    height: 42px;
+
+    padding: 0 12px;
+}
+
+.product-form-field textarea {
+    min-height: 95px;
+
+    padding: 11px 12px;
+
+    resize: vertical;
+}
+
+.product-form-field input:focus,
+.product-form-field select:focus,
+.product-form-field textarea:focus {
+    border-color: #21883f;
+
+    box-shadow:
+        0 0 0 3px rgba(
+            33,
+            136,
+            63,
+            0.08
+        );
+}
+
+
+/* =========================================================
+   AVAILABILITY CHECKBOX
+========================================================= */
+
+.availability-checkbox {
+    margin-top: 18px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+
+    color: #526058;
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+.availability-checkbox input {
+    width: 16px;
+    height: 16px;
+
+    accent-color: #21883f;
+
+    cursor: pointer;
+}
+
+
+/* =========================================================
+   SAVE PRODUCT
+========================================================= */
+
+.save-product-button {
+    width: 100%;
+
+    min-height: 44px;
+
+    margin-top: 18px;
+
+    border: none;
+
+    border-radius: 9px;
+
+    background: #21883f;
+
+    color: #ffffff;
+
+    font-size: 13px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.save-product-button:hover {
+    background: #176f31;
+}
+
+.save-product-button:disabled {
+    background: #9bb9a2;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   FORM ERROR
+========================================================= */
+
+.form-error {
+    margin: 0 0 18px;
+
+    padding: 11px 13px;
+
+    border: 1px solid #f0caca;
+
+    border-radius: 8px;
+
+    background: #fff3f3;
+
+    color: #c62828;
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   PRODUCT GRID
+========================================================= */
+
+.farmer-products-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 18px;
+}
+
+
+/* =========================================================
+   PRODUCT CARD
+========================================================= */
+
+.farmer-product-card {
+    padding: 20px;
+
+    background: #ffffff;
+
+    border: 1px solid #e1eee4;
+
+    border-radius: 15px;
+
+    box-sizing: border-box;
+
+    box-shadow:
+        0 4px 15px rgba(
+            40,
+            100,
+            50,
+            0.04
+        );
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.farmer-product-card:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 7px 22px rgba(
+            40,
+            100,
+            50,
+            0.08
+        );
+}
+
+.farmer-product-card-top {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 10px;
+
+    margin-bottom: 14px;
+}
+
+.farmer-product-icon {
+    width: 42px;
+    height: 42px;
+
+    border-radius: 11px;
+
+    background: #edf8ef;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 21px;
+}
+
+.product-status {
+    padding: 5px 8px;
+
+    border-radius: 7px;
+
+    font-size: 9px;
+
+    font-weight: 800;
+
+    text-transform: uppercase;
+}
+
+.product-status.available {
+    background: #e8f6eb;
+
+    color: #21883f;
+}
+
+.product-status.unavailable {
+    background: #fff0f0;
+
+    color: #c62828;
+}
+
+.farmer-product-card h3 {
+    margin: 0;
+
+    color: #173b22;
+
+    font-size: 18px;
+
+    font-weight: 800;
+}
+
+.farmer-product-category {
+    margin: 5px 0 16px;
+
+    color: #789080;
+
+    font-size: 11px;
+
+    font-weight: 600;
+
+    text-transform: uppercase;
+}
+
+
+/* =========================================================
+   PRODUCT INFORMATION
+========================================================= */
+
+.farmer-product-info {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 10px;
+
+    margin-bottom: 14px;
+}
+
+.farmer-product-info > div {
+    padding: 11px;
+
+    border-radius: 9px;
+
+    background: #f7fbf8;
+}
+
+.farmer-product-info span {
+    display: block;
+
+    margin-bottom: 4px;
+
+    color: #789080;
+
+    font-size: 10px;
+}
+
+.farmer-product-info strong {
+    color: #263c2d;
+
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   STOCK WARNINGS
+========================================================= */
+
+.low-stock-warning {
+    margin: 10px 0;
+
+    padding: 8px 10px;
+
+    border-radius: 7px;
+
+    background: #fff8e8;
+
+    color: #a56a00;
+
+    font-size: 11px;
+
+    font-weight: 700;
+}
+
+.out-of-stock-warning {
+    margin: 10px 0;
+
+    padding: 8px 10px;
+
+    border-radius: 7px;
+
+    background: #fff0f0;
+
+    color: #c62828;
+
+    font-size: 11px;
+
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   PRODUCT ACTIONS
+========================================================= */
+
+.product-actions {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 8px;
+
+    margin-top: 15px;
+}
+
+.edit-product-button,
+.delete-product-button {
+    min-height: 38px;
+
+    border-radius: 8px;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.edit-product-button {
+    border: 1px solid #21883f;
+
+    background: #ffffff;
+
+    color: #21883f;
+}
+
+.edit-product-button:hover {
+    background: #eff8f1;
+}
+
+.delete-product-button {
+    border: 1px solid #e0aaaa;
+
+    background: #ffffff;
+
+    color: #c62828;
+}
+
+.delete-product-button:hover {
+    background: #fff1f1;
+}
+
+
+/* =========================================================
+   AVAILABILITY CONTROL
+========================================================= */
+
+.availability-control {
+    margin-top: 12px;
+
+    padding-top: 12px;
+
+    border-top: 1px solid #e7eee8;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 10px;
+}
+
+.availability-control span {
+    color: #68776d;
+
+    font-size: 10px;
+
+    font-weight: 700;
+}
+
+.availability-button {
+    min-height: 32px;
+
+    padding: 0 9px;
+
+    border: 1px solid #cddbd0;
+
+    border-radius: 7px;
+
+    background: #ffffff;
+
+    color: #53675a;
+
+    font-size: 9px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.availability-button:hover {
+    border-color: #21883f;
+
+    color: #21883f;
+}
+
+
+/* =========================================================
+   STATE CARDS
+========================================================= */
+
+.farmer-state-card {
+    padding: 45px 25px;
+
+    border: 1px dashed #c8dacf;
+
+    border-radius: 15px;
+
+    background: #f9fcfa;
+
+    text-align: center;
+}
+
+.farmer-state-card h3 {
+    margin: 10px 0 5px;
+
+    color: #263c2d;
+
+    font-size: 17px;
+}
+
+.farmer-state-card p {
+    margin: 0 auto 18px;
+
+    max-width: 450px;
+
+    color: #718078;
+
+    font-size: 12px;
+
+    line-height: 1.6;
+}
+
+.farmer-loading-icon,
+.farmer-empty-icon {
+    font-size: 32px;
+}
+
+.farmer-error-card {
+    padding: 18px;
+
+    border: 1px solid #f0caca;
+
+    border-radius: 12px;
+
+    background: #fff3f3;
+
+    color: #c62828;
+}
+
+.farmer-error-card strong {
+    font-size: 13px;
+}
+
+.farmer-error-card p {
+    margin: 6px 0 0;
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   PROFILE OVERLAY
+========================================================= */
+
+.farmer-profile-overlay {
+    position: fixed;
+
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    background: rgba(
+        0,
+        0,
+        0,
+        0.35
+    );
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding: 20px;
+
+    box-sizing: border-box;
+
+    z-index: 1100;
+}
+
+
+/* =========================================================
+   PROFILE MODAL
+========================================================= */
+
+.farmer-profile-modal {
+    width: 420px;
+
+    max-width: 100%;
+
+    max-height: 90vh;
+
+    overflow-y: auto;
+
+    padding: 25px;
+
+    box-sizing: border-box;
+
+    background: #ffffff;
+
+    border-radius: 16px;
+
+    box-shadow:
+        0 15px 40px rgba(
+            0,
+            0,
+            0,
+            0.20
+        );
+}
+
+.farmer-modal-header {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 15px;
+
+    margin-bottom: 22px;
+}
+
+.farmer-modal-header h2 {
+    margin: 0;
+
+    color: #126b2c;
+
+    font-size: 22px;
+}
+
+.farmer-modal-close {
+    border: none;
+
+    background: transparent;
+
+    color: #526058;
+
+    font-size: 22px;
+
+    cursor: pointer;
+}
+
+
+/* =========================================================
+   PROFILE TOP
+========================================================= */
+
+.farmer-profile-top {
+    margin-bottom: 22px;
+
+    text-align: center;
+}
+
+.farmer-profile-large-avatar {
+    width: 70px;
+    height: 70px;
+
+    margin: 0 auto 12px;
+
+    border-radius: 50%;
+
+    background: #21883f;
+
+    color: #ffffff;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 28px;
+
+    font-weight: 700;
+}
+
+.farmer-profile-top h3 {
+    margin: 0 0 5px;
+
+    color: #263c2d;
+
+    font-size: 18px;
+}
+
+.farmer-profile-top span {
+    color: #718074;
+
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   PROFILE DETAILS
+========================================================= */
+
+.farmer-profile-details {
+    display: grid;
+
+    gap: 12px;
+}
+
+.farmer-profile-details > div {
+    padding: 12px;
+
+    border-radius: 9px;
+
+    background: #f7fbf8;
+}
+
+.farmer-profile-details strong {
+    color: #263c2d;
+
+    font-size: 12px;
+}
+
+.farmer-profile-details p {
+    margin: 4px 0 0;
+
+    color: #526058;
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   PROFILE FORM
+========================================================= */
+
+.farmer-profile-field {
+    margin-bottom: 16px;
+}
+
+.farmer-profile-field label {
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: #263c2d;
+
+    font-size: 13px;
+
+    font-weight: 700;
+}
+
+.farmer-profile-field input {
+    width: 100%;
+
+    height: 42px;
+
+    padding: 0 12px;
+
+    box-sizing: border-box;
+
+    border: 1px solid #cddbd0;
+
+    border-radius: 8px;
+
+    outline: none;
+
+    background: #ffffff;
+
+    color: #263c2d;
+
+    font-size: 13px;
+}
+
+.farmer-profile-field input:focus {
+    border-color: #21883f;
+
+    box-shadow:
+        0 0 0 3px rgba(
+            33,
+            136,
+            63,
+            0.08
+        );
+}
+
+
+/* =========================================================
+   PROFILE MESSAGES
+========================================================= */
+
+.farmer-success-message {
+    margin-bottom: 18px;
+
+    padding: 11px 13px;
+
+    border: 1px solid #ccebd3;
+
+    border-radius: 8px;
+
+    background: #eaf8ed;
+
+    color: #197238;
+
+    font-size: 13px;
+
+    font-weight: 600;
+}
+
+.farmer-error-message {
+    margin-bottom: 18px;
+
+    padding: 11px 13px;
+
+    border: 1px solid #f3caca;
+
+    border-radius: 8px;
+
+    background: #fff3f3;
+
+    color: #c62828;
+
+    font-size: 13px;
+
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   PROFILE BUTTONS
+========================================================= */
+
+.farmer-modal-buttons {
+    display: flex;
+
+    gap: 10px;
+}
+
+.farmer-save-button,
+.farmer-cancel-button {
+    flex: 1;
+
+    min-height: 42px;
+
+    border-radius: 9px;
+
+    font-size: 13px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.farmer-save-button {
+    border: none;
+
+    background: #21883f;
+
+    color: #ffffff;
+}
+
+.farmer-save-button:hover {
+    background: #176f31;
+}
+
+.farmer-save-button:disabled {
+    background: #9bb9a2;
+
+    cursor: not-allowed;
+}
+
+.farmer-cancel-button {
+    border: 1px solid #cddbd0;
+
+    background: #ffffff;
+
+    color: #526058;
+}
+
+.farmer-cancel-button:hover {
+    background: #f5faf6;
+}
+
+.farmer-full-button,
+.farmer-outline-button {
+    width: 100%;
+
+    min-height: 42px;
+
+    border-radius: 9px;
+
+    font-size: 13px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.farmer-full-button {
+    margin-top: 20px;
+
+    border: none;
+
+    background: #21883f;
+
+    color: #ffffff;
+}
+
+.farmer-full-button:hover {
+    background: #176f31;
+}
+
+.farmer-outline-button {
+    margin-top: 10px;
+
+    border: 1px solid #21883f;
+
+    background: #ffffff;
+
+    color: #21883f;
+}
+
+.farmer-outline-button:hover {
+    background: #eff8f1;
+}
+
+
+/* =========================================================
+   RESPONSIVE - TABLET
+========================================================= */
+
+@media (max-width: 1100px) {
+
+    .farmer-sidebar {
+        width: 210px;
+    }
+
+    .farmer-main {
+        margin-left: 210px;
+    }
+
+    .farmer-header {
+        padding: 0 20px;
+    }
+
+    .farmer-products-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .farmer-home-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .farmer-stat-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+}
+
+
+/* =========================================================
+   RESPONSIVE - SMALL TABLET
+========================================================= */
+
+@media (max-width: 850px) {
+
+    .farmer-sidebar {
+        width: 72px;
+
+        padding-left: 10px;
+
+        padding-right: 10px;
+    }
+
+    .farmer-sidebar-title {
+        display: none;
+    }
+
+    .farmer-sidebar-item {
+        justify-content: center;
+
+        padding: 0;
+    }
+
+    .farmer-sidebar-item > span:last-child {
+        display: none;
+    }
+
+    .farmer-main {
+        margin-left: 72px;
+    }
+
+    .farmer-brand-section p {
+        display: none;
+    }
+
+    .farmer-profile > div:last-child {
+        display: none;
+    }
+
+    .farmer-component-wrapper {
+        padding-left: 20px;
+
+        padding-right: 20px;
+    }
+
+    .farmer-page-heading {
+        flex-direction: column;
+    }
+
+    .farmer-products-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+}
+
+
+/* =========================================================
+   RESPONSIVE - MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+
+    .farmer-header {
+        height: 68px;
+
+        padding: 0 12px;
+    }
+
+    .farmer-brand-icon {
+        width: 38px;
+        height: 38px;
+
+        font-size: 21px;
+    }
+
+    .farmer-brand-section h1 {
+        font-size: 17px;
+    }
+
+    .farmer-sidebar {
+        top: 68px;
+
+        width: 60px;
+    }
+
+    .farmer-main {
+        margin-left: 60px;
+
+        padding-top: 68px;
+    }
+
+    .farmer-dashboard-status {
+        padding: 0 15px;
+    }
+
+    .farmer-component-wrapper {
+        padding: 20px 12px 35px;
+    }
+
+    .farmer-products-grid,
+    .farmer-home-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .farmer-stat-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .farmer-welcome-card {
+        padding: 22px;
+    }
+
+    .farmer-welcome-icon {
+        width: 65px;
+        height: 65px;
+
+        font-size: 34px;
+    }
+
+    .farmer-welcome-card h2 {
+        font-size: 23px;
+    }
+
+    .product-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .product-form-field.full-width {
+        grid-column: auto;
+    }
+}
+
+
+/* =========================================================
+   VERY SMALL MOBILE
+========================================================= */
+
+@media (max-width: 420px) {
+
+    .farmer-header {
+        padding: 0 8px;
+    }
+
+    .farmer-brand-section {
+        gap: 8px;
+    }
+
+    .farmer-brand-icon {
+        width: 34px;
+        height: 34px;
+
+        font-size: 18px;
+    }
+
+    .farmer-brand-section h1 {
+        font-size: 15px;
+    }
+
+    .farmer-header-right {
+        gap: 8px;
+    }
+
+    .farmer-header-notification {
+        width: 38px;
+        height: 38px;
+
+        font-size: 17px;
+    }
+
+    .farmer-component-wrapper {
+        padding-left: 10px;
+
+        padding-right: 10px;
+    }
+
+    .farmer-stat-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .farmer-welcome-card {
+        align-items: flex-start;
+    }
+
+    .farmer-welcome-icon {
+        display: none;
+    }
+
+    .farmer-modal-buttons {
+        flex-direction: column;
+    }
+
+    .product-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .availability-control {
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+    .availability-button {
+        width: 100%;
+    }
+}
+
+/* =========================================
+   FARMER PRODUCT IMAGE
+========================================= */
+
+.farmer-product-image-container {
+    position: relative;
+    width: 100%;
+    height: 190px;
+    margin-bottom: 16px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #f1f8f3;
+}
+
+.farmer-product-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.farmer-product-image-placeholder {
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    font-size: 55px;
+    background: #f1f8f3;
+}
+
+.product-image-status {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 7px 11px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    background: #ffffff;
+}
+
+.product-image-status.available {
+    color: #16803c;
+}
+
+.product-image-status.unavailable {
+    color: #d93025;
+}
+
+/* =========================================================
+   FARMER CUSTOMER REVIEWS
+   ========================================================= */
+
+.farmer-reviews-page {
+    width: 100%;
+    animation: farmerReviewsFadeIn 0.3s ease;
+}
+
+@keyframes farmerReviewsFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Page Header */
+
+.farmer-reviews-page .farmer-section-header {
+    margin-bottom: 24px;
+}
+
+.farmer-reviews-page .farmer-section-header h2 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.farmer-reviews-page .farmer-section-header p {
+    margin: 7px 0 0;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   SUMMARY CARDS
+   ========================================================= */
+
+.farmer-reviews-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-bottom: 28px;
+}
+
+.farmer-review-summary-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+    transition: all 0.25s ease;
+}
+
+.farmer-review-summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 20px rgba(0, 0, 0, 0.08);
+}
+
+.farmer-review-summary-icon {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    border-radius: 12px;
+    background: #f0fdf4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 25px;
+}
+
+.farmer-review-summary-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.farmer-review-summary-label {
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.farmer-review-summary-value {
+    color: #111827;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   PRODUCT REVIEW CARDS
+   ========================================================= */
+
+.farmer-review-products-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.farmer-review-product-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+    transition: all 0.25s ease;
+}
+
+.farmer-review-product-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+}
+
+.farmer-review-product-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 17px;
+}
+
+.farmer-review-product-info {
+    min-width: 0;
+}
+
+.farmer-review-product-info h3 {
+    margin: 0 0 6px;
+    color: #1f2937;
+    font-size: 18px;
+    font-weight: 700;
+    word-break: break-word;
+}
+
+.farmer-review-product-info p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.farmer-review-stars {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+    color: #f59e0b;
+    font-size: 17px;
+}
+
+.farmer-review-product-rating {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.farmer-review-product-rating-value {
+    color: #374151;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.farmer-review-count {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.farmer-review-view-button {
+    width: 100%;
+    border: 1px solid #16a34a;
+    background: #ffffff;
+    color: #15803d;
+    border-radius: 9px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.farmer-review-view-button:hover {
+    background: #16a34a;
+    color: #ffffff;
+}
+
+
+/* =========================================================
+   EMPTY / LOADING / ERROR
+   ========================================================= */
+
+.farmer-review-empty {
+    grid-column: 1 / -1;
+    background: #ffffff;
+    border: 1px dashed #d1d5db;
+    border-radius: 14px;
+    padding: 45px 20px;
+    text-align: center;
+    color: #6b7280;
+}
+
+.farmer-review-empty-icon {
+    font-size: 42px;
+    margin-bottom: 12px;
+}
+
+.farmer-review-empty h3 {
+    margin: 0 0 7px;
+    color: #374151;
+    font-size: 18px;
+}
+
+.farmer-review-empty p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.farmer-review-loading {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 35px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.farmer-review-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    border-radius: 10px;
+    padding: 13px 16px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   REVIEW MODAL
+   ========================================================= */
+
+.farmer-review-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.58);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 9999;
+    animation: farmerReviewOverlayIn 0.2s ease;
+}
+
+@keyframes farmerReviewOverlayIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.farmer-review-modal {
+    width: min(720px, 100%);
+    max-height: 85vh;
+    background: #ffffff;
+    border-radius: 18px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: farmerReviewModalIn 0.25s ease;
+}
+
+@keyframes farmerReviewModalIn {
+    from {
+        opacity: 0;
+        transform: translateY(15px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+
+/* Modal Header */
+
+.farmer-review-modal-header {
+    padding: 18px 22px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.farmer-review-modal-header h3 {
+    margin: 0;
+    color: #1f2937;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.farmer-review-modal-close {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: #f3f4f6;
+    color: #4b5563;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.farmer-review-modal-close:hover {
+    background: #e5e7eb;
+    color: #111827;
+}
+
+
+/* Product Information */
+
+.farmer-review-modal-product {
+    padding: 17px 22px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.farmer-review-modal-product h4 {
+    margin: 0 0 6px;
+    color: #1f2937;
+    font-size: 16px;
+}
+
+.farmer-review-modal-product p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+
+/* Review List */
+
+.farmer-review-list {
+    padding: 20px 22px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.farmer-review-item {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+    background: #ffffff;
+}
+
+.farmer-review-item-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.farmer-review-customer {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.farmer-review-customer-name {
+    color: #1f2937;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.farmer-review-date {
+    color: #9ca3af;
+    font-size: 12px;
+}
+
+.farmer-review-comment {
+    margin: 10px 0 0;
+    color: #4b5563;
+    font-size: 14px;
+    line-height: 1.6;
+    word-break: break-word;
+}
+
+.farmer-review-no-comment {
+    margin: 10px 0 0;
+    color: #9ca3af;
+    font-size: 13px;
+    font-style: italic;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1100px) {
+    .farmer-reviews-summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .farmer-review-products-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .farmer-reviews-page .farmer-section-header h2 {
+        font-size: 23px;
+    }
+
+    .farmer-reviews-summary-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .farmer-review-summary-card {
+        padding: 16px;
+    }
+
+    .farmer-review-product-card {
+        padding: 16px;
+    }
+
+    .farmer-review-product-top {
+        flex-direction: column;
+    }
+
+    .farmer-review-item-header {
+        flex-direction: column;
+    }
+
+    .farmer-review-modal {
+        max-height: 90vh;
+        border-radius: 14px;
+    }
+
+    .farmer-review-modal-header,
+    .farmer-review-modal-product,
+    .farmer-review-list {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .farmer-review-summary-value {
+        font-size: 21px;
+    }
+
+    .farmer-review-modal-overlay {
+        padding: 10px;
+    }
+
+    .farmer-review-modal-header h3 {
+        font-size: 17px;
+    }
+
+    .farmer-review-stars {
+        font-size: 15px;
+    }
+}
+
+.product-rating {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0 12px;
+    min-height: 28px;
+}
+
+.rating-stars {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    line-height: 1;
+}
+
+.rating-stars span {
+    display: inline-block;
+    font-size: 20px !important;
+    line-height: 1;
+    font-family: Arial, sans-serif;
+}
+
+.rating-stars .star-filled {
+    color: #f5b301 !important;
+    -webkit-text-fill-color: #f5b301 !important;
+}
+
+.rating-stars .star-empty {
+    color: #d1d5db !important;
+    -webkit-text-fill-color: #d1d5db !important;
+}
+
+.rating-number {
+    color: #374151 !important;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.rating-count {
+    color: #6b7280 !important;
+    font-size: 13px;
+}
+.view-reviews-button {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    min-width: 130px;
+    height: 42px;
+
+    padding: 0 16px;
+
+    border: 1px solid #2e7d32 !important;
+    border-radius: 8px;
+
+    background: #ffffff !important;
+    color: #2e7d32 !important;
+
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    line-height: 1 !important;
+
+    cursor: pointer;
+    visibility: visible !important;
+    opacity: 1 !important;
+
+    transition: all 0.2s ease;
+}
+
+.view-reviews-button:hover {
+    background: #2e7d32 !important;
+    color: #ffffff !important;
+}

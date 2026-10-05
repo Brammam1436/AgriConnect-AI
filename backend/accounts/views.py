@@ -5,12 +5,12 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .serializers import RegisterSerializer, UserSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
+from .serializers import RegisterSerializer, UserSerializer,ProfileUpdateSerializer,CustomerAddressSerializer
 from django.contrib.auth import authenticate
 from rest_framework.permissions import IsAuthenticated
 from accounts.permissions import IsAdminOnly
-from accounts.models import User
+from accounts.models import User,CustomerAddress
 from farmers.models import FarmerProfile
 from products.models import Product
 from orders.models import Order
@@ -21,6 +21,7 @@ from products.serializers import ProductSerializer
 
 from orders.serializers import OrderSerializer
 from payments.serializers import AdminPaymentSerializer
+from .serializers import ChangePasswordSerializer
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -90,13 +91,191 @@ class MeView(APIView):
             status=status.HTTP_200_OK,
         )
 
+    def put(self, request):
+        serializer = ProfileUpdateSerializer(
+            request.user,
+            data=request.data,
+            partial=True,
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+
+            return Response(
+                {
+                    "message": "Profile updated successfully",
+                    "user": UserSerializer(
+                        request.user
+                    ).data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ChangePasswordSerializer(
+            data=request.data,
+            context={"request": request}
+        )
+
+        if serializer.is_valid():
+            user = request.user
+
+            user.set_password(
+                serializer.validated_data["new_password"]
+            )
+
+            user.save()
+
+            return Response(
+                {
+                    "message": "Password changed successfully."
+                },
+                status=status.HTTP_200_OK
+            )
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+class CustomerAddressListCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        addresses = CustomerAddress.objects.filter(
+            customer=request.user
+        ).order_by("-is_default", "-id")
+
+        serializer = CustomerAddressSerializer(
+            addresses,
+            many=True
+        )
+
+        return Response(
+            {
+                "addresses": serializer.data
+            },
+            status=status.HTTP_200_OK
+        )
+
+    def post(self, request):
+        serializer = CustomerAddressSerializer(
+            data=request.data,
+            context={"request": request}
+        )
+
+        if serializer.is_valid():
+            address = serializer.save()
+
+            return Response(
+                {
+                    "message": "Address added successfully",
+                    "address": CustomerAddressSerializer(
+                        address
+                    ).data,
+                },
+                status=status.HTTP_201_CREATED
+            )
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+class CustomerAddressDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, request, pk):
+        try:
+            return CustomerAddress.objects.get(
+                pk=pk,
+                customer=request.user
+            )
+        except CustomerAddress.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        address = self.get_object(request, pk)
+
+        if address is None:
+            return Response(
+                {"error": "Address not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = CustomerAddressSerializer(address)
+
+        return Response(
+            {
+                "address": serializer.data
+            },
+            status=status.HTTP_200_OK
+        )
+
+    def put(self, request, pk):
+        address = self.get_object(request, pk)
+
+        if address is None:
+            return Response(
+                {"error": "Address not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = CustomerAddressSerializer(
+            address,
+            data=request.data,
+            partial=True
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+
+            return Response(
+                {
+                    "message": "Address updated successfully",
+                    "address": serializer.data
+                },
+                status=status.HTTP_200_OK
+            )
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    def delete(self, request, pk):
+        address = self.get_object(request, pk)
+
+        if address is None:
+            return Response(
+                {"error": "Address not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        address.delete()
+
+        return Response(
+            {
+                "message": "Address deleted successfully"
+            },
+            status=status.HTTP_200_OK
+        )
+
 class AdminDashboardView(APIView):
     permission_classes = [IsAdminOnly]
 
     def get(self, request):
         total_users = User.objects.count()
-        total_farmers = FarmerProfile.objects.count()
         total_customers = User.objects.filter(role="CUSTOMER").count()
+        total_farmers = User.objects.filter(role="FARMER").count()
         total_products = Product.objects.count()
         total_orders = Order.objects.count()
         total_payments = Payment.objects.count()

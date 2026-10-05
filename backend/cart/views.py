@@ -19,8 +19,12 @@ class CartView(APIView):
             customer=request.user
         )
 
-        serializer = CartSerializer(cart)
-
+        serializer = CartSerializer(
+            cart,
+            context={
+                "request": request
+            }
+        )
         return Response(serializer.data)
 
 
@@ -114,8 +118,12 @@ class CartItemCreateView(APIView):
             cart_item.quantity = new_quantity
             cart_item.save()
 
-        serializer = CartSerializer(cart)
-
+        serializer = CartSerializer(
+            cart,
+            context={
+                "request": request
+            }
+        )
         return Response(
             serializer.data,
             status=status.HTTP_201_CREATED
@@ -183,8 +191,12 @@ class CartItemUpdateView(APIView):
         cart_item.quantity = quantity
         cart_item.save()
 
-        serializer = CartSerializer(cart)
-
+        serializer = CartSerializer(
+            cart,
+            context={
+                "request": request
+            }
+        )
         return Response(serializer.data)
     
     def delete(self, request, pk):

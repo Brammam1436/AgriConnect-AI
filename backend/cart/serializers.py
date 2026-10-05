@@ -7,43 +7,49 @@ from .models import Cart, CartItem
 
 class CartItemSerializer(serializers.ModelSerializer):
 
-    product_name = serializers.CharField(
-        source="product.name",
-        read_only=True
-    )
-
-    price_per_kg = serializers.DecimalField(
-        source="product.price_per_kg",
-        max_digits=10,
-        decimal_places=2,
-        read_only=True
-    )
-
-    subtotal = serializers.SerializerMethodField()
+    product = serializers.SerializerMethodField()
 
     class Meta:
         model = CartItem
         fields = [
             "id",
             "product",
-            "product_name",
-            "price_per_kg",
             "quantity",
-            "subtotal",
+            "created_at",
+            "updated_at",
         ]
 
-    def validate_quantity(self, value):
+    def get_product(self, obj):
 
-        if value <= Decimal("0"):
-            raise serializers.ValidationError(
-                "Quantity must be greater than 0."
-            )
+        product = obj.product
 
-        return value
+        request = self.context.get("request")
 
-    def get_subtotal(self, obj):
+        image_url = None
 
-        return obj.product.price_per_kg * obj.quantity
+        if product.image:
+            image_url = product.image.url
+
+            if request:
+                image_url = request.build_absolute_uri(
+                    image_url
+                )
+
+        return {
+            "id": product.id,
+            "name": product.name,
+            "category": product.category,
+            "description": product.description,
+            "price_per_kg": str(
+                product.price_per_kg
+            ),
+            "available_quantity": str(
+                product.available_quantity
+            ),
+            "unit": product.unit,
+            "is_available": product.is_available,
+            "image": image_url,
+        }
 
 
 class CartSerializer(serializers.ModelSerializer):
@@ -53,23 +59,27 @@ class CartSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
-    total = serializers.SerializerMethodField()
+    total_amount = serializers.SerializerMethodField()
 
     class Meta:
         model = Cart
         fields = [
             "id",
             "items",
-            "total",
+            "total_amount",
             "created_at",
             "updated_at",
         ]
 
-    def get_total(self, obj):
+    def get_total_amount(self, obj):
 
-        total = Decimal("0")
+        total = 0
 
         for item in obj.items.all():
-            total += item.product.price_per_kg * item.quantity
 
-        return total
+            total += (
+                item.quantity *
+                item.product.price_per_kg
+            )
+
+        return str(total)

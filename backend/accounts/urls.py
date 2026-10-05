@@ -13,6 +13,12 @@ from .views import (
     AdminOrderDetailView,
     AdminPaymentListView,
 )
+from .views import (
+    MeView,
+    ChangePasswordView,
+    CustomerAddressListCreateView,
+    CustomerAddressDetailView
+)
 
 urlpatterns = [
     path("register/", RegisterView.as_view(), name="register"),
@@ -26,4 +32,7 @@ urlpatterns = [
     path("admin/orders/",AdminOrderListView.as_view(),name="admin-order-list"),
     path("admin/orders/<int:pk>/",AdminOrderDetailView.as_view(),name="admin-order-detail"),
     path("admin/payments/",AdminPaymentListView.as_view(),name="admin-payment-list"),
+    path("change-password/",ChangePasswordView.as_view(),name="change-password"),
+    path("addresses/",CustomerAddressListCreateView.as_view(),name="customer-address-list-create"),
+    path("addresses/<int:pk>/",CustomerAddressDetailView.as_view(),name="customer-address-detail"),
 ]

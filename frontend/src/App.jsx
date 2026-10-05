@@ -7,37 +7,48 @@ import FarmerDashboard from "./components/FarmerDashboard";
 import AdminDashboard from "./components/AdminDashboard";
 import CustomerCart from "./components/CustomerCart";
 import CustomerNotifications from "./components/CustomerNotifications";
-import FarmerNotifications from "./components/FarmerNotifications";
+import CustomerDashboard from "./components/CustomerDashboard";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
 const RAZORPAY_KEY_ID = "rzp_test_Tb9K0WydM5EmRH";
 
-
 function App() {
-
   // --------------------------------
   // LOGIN STATES
   // --------------------------------
 
-  const [username, setUsername] =
-    useState("api_customer1");
+  const [username, setUsername] = useState("api_customer1");
 
-  const [password, setPassword] =
-    useState("");
+  const [password, setPassword] = useState("");
 
-  const [loggedIn, setLoggedIn] =
-    useState(
-      Boolean(
-        localStorage.getItem("access_token")
-      )
-    );
+  const [loggedIn, setLoggedIn] = useState(
+    Boolean(localStorage.getItem("access_token"))
+  );
 
-  const [userRole, setUserRole] =
-    useState(
-      localStorage.getItem("user_role") || ""
-    );
+  const [userRole, setUserRole] = useState(
+    localStorage.getItem("user_role") || ""
+  );
 
+  // --------------------------------
+  // REGISTER / LOGIN SCREEN STATE
+  // --------------------------------
+
+  const [showRegister, setShowRegister] = useState(false);
+
+  const [registerUsername, setRegisterUsername] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPhone, setRegisterPhone] = useState("");
+  const [registerRole, setRegisterRole] = useState("CUSTOMER");
+  const [registerPassword, setRegisterPassword] = useState("");
+
+  // Farmer profile fields
+  const [farmName, setFarmName] = useState("");
+  const [farmAddress, setFarmAddress] = useState("");
+  const [farmVillage, setFarmVillage] = useState("");
+  const [farmDistrict, setFarmDistrict] = useState("");
+  const [farmState, setFarmState] = useState("");
+  const [farmPincode, setFarmPincode] = useState("");
 
   // --------------------------------
   // PAYMENT STATES
@@ -45,27 +56,20 @@ function App() {
 
   const [orderId] = useState(5);
 
-  const [message, setMessage] =
-    useState("");
+  const [message, setMessage] = useState("");
 
-  const [loading, setLoading] =
-    useState(false);
-
+  const [loading, setLoading] = useState(false);
 
   // --------------------------------
   // LOGIN
   // --------------------------------
 
   const handleLogin = async (event) => {
-
     event.preventDefault();
 
     try {
-
       setLoading(true);
-
       setMessage("Logging in...");
-
 
       const response = await fetch(
         `${API_BASE_URL}/api/auth/login/`,
@@ -73,8 +77,7 @@ function App() {
           method: "POST",
 
           headers: {
-            "Content-Type":
-              "application/json",
+            "Content-Type": "application/json",
           },
 
           body: JSON.stringify({
@@ -84,52 +87,147 @@ function App() {
         }
       );
 
-
-      const data =
-        await response.json();
-
+      const data = await response.json();
 
       if (!response.ok) {
-
         setMessage(
           data.detail ||
-          data.message ||
-          "Login failed. Please check your username and password."
+            data.message ||
+            "Login failed. Please check your username and password."
         );
 
         setLoading(false);
-
         return;
       }
-
 
       // --------------------------------
       // SAVE JWT ACCESS TOKEN
       // --------------------------------
 
-      localStorage.setItem(
-        "access_token",
-        data.access
-      );
-
+      localStorage.setItem("access_token", data.access);
 
       // --------------------------------
       // GET USER ROLE
       // --------------------------------
 
-      const role =
-        data.user?.role ||
-        data.role;
-
+      const role = data.user?.role || data.role;
 
       if (!role) {
-
         setMessage(
           "Login successful, but user role was not returned by the server."
         );
 
-        localStorage.removeItem(
-          "access_token"
+        localStorage.removeItem("access_token");
+
+        setLoading(false);
+        return;
+      }
+
+      // --------------------------------
+      // SAVE USER ROLE
+      // --------------------------------
+
+      localStorage.setItem("user_role", role);
+
+      // --------------------------------
+      // SAVE USERNAME
+      // --------------------------------
+
+      localStorage.setItem(
+        "current_username",
+        data.user?.username || username
+      );
+
+      // --------------------------------
+      // UPDATE REACT STATE
+      // --------------------------------
+
+      setUserRole(role);
+      setLoggedIn(true);
+      setPassword("");
+
+      setMessage("✅ Login successful!");
+
+      setLoading(false);
+    } catch (error) {
+      console.error("Login error:", error);
+
+      setMessage("Unable to connect to Django backend.");
+
+      setLoading(false);
+    }
+  };
+
+  // --------------------------------
+  // REGISTER
+  // --------------------------------
+
+  const handleRegister = async (event) => {
+    event.preventDefault();
+
+    // Basic frontend password validation
+    if (registerPassword.length < 8) {
+      setMessage("Password must be at least 8 characters.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setMessage("Creating your account...");
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/auth/register/`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            username: registerUsername,
+            email: registerEmail,
+            phone: registerPhone,
+            role: registerRole,
+            password: registerPassword,
+
+            // Farmer profile details
+            farm_name: farmName,
+            address: farmAddress,
+            village: farmVillage,
+            district: farmDistrict,
+            state: farmState,
+            pincode: farmPincode,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Registration error:", data);
+
+        // Handle Django serializer errors
+        const errorMessages = [];
+
+        Object.keys(data).forEach((field) => {
+          const errors = data[field];
+
+          if (Array.isArray(errors)) {
+            errorMessages.push(
+              `${field}: ${errors.join(", ")}`
+            );
+          } else {
+            errorMessages.push(
+              `${field}: ${errors}`
+            );
+          }
+        });
+
+        setMessage(
+          errorMessages.length > 0
+            ? errorMessages.join(" | ")
+            : "Registration failed. Please check your details."
         );
 
         setLoading(false);
@@ -137,36 +235,38 @@ function App() {
         return;
       }
 
-
       // --------------------------------
-      // SAVE USER ROLE
+      // REGISTRATION SUCCESS
       // --------------------------------
-
-      localStorage.setItem(
-        "user_role",
-        role
-      );
-
-
-      setUserRole(role);
-
-      setLoggedIn(true);
-
-      setPassword("");
 
       setMessage(
-        "✅ Login successful!"
+        "✅ Registration successful! Please login with your new account."
       );
+
+      // Clear registration form
+      setRegisterUsername("");
+      setRegisterEmail("");
+      setRegisterPhone("");
+      setRegisterRole("CUSTOMER");
+      setRegisterPassword("");
+
+      // Clear farmer fields
+      setFarmName("");
+      setFarmAddress("");
+      setFarmVillage("");
+      setFarmDistrict("");
+      setFarmState("");
+      setFarmPincode("");
+
+      // Switch back to login
+      setShowRegister(false);
+
+      // Put registered username into login form
+      setUsername(registerUsername);
 
       setLoading(false);
-
-    }
-    catch (error) {
-
-      console.error(
-        "Login error:",
-        error
-      );
+    } catch (error) {
+      console.error("Registration error:", error);
 
       setMessage(
         "Unable to connect to Django backend."
@@ -176,62 +276,45 @@ function App() {
     }
   };
 
-
   // --------------------------------
   // LOGOUT
   // --------------------------------
 
   const handleLogout = () => {
+    // Remove authentication information
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("user_role");
+    localStorage.removeItem("current_username");
 
-    localStorage.removeItem(
-      "access_token"
-    );
-
-    localStorage.removeItem(
-      "user_role"
-    );
-
+    // Reset React authentication state
     setLoggedIn(false);
-
     setUserRole("");
 
-    setMessage(
-      "Logged out successfully."
-    );
-  };
+    // Clear password
+    setPassword("");
 
+    // Show login screen
+    setMessage("Logged out successfully.");
+  };
 
   // --------------------------------
   // RAZORPAY PAYMENT
   // --------------------------------
 
   const handlePayment = async () => {
-
     try {
-
       setLoading(true);
 
-      setMessage(
-        "Creating Razorpay order..."
-      );
-
+      setMessage("Creating Razorpay order...");
 
       // Get JWT token
-
-      const token =
-        localStorage.getItem(
-          "access_token"
-        );
-
+      const token = localStorage.getItem("access_token");
 
       if (!token) {
-
-        setMessage(
-          "Please login first."
-        );
+        setMessage("Please login first.");
 
         setLoggedIn(false);
-
         setUserRole("");
 
         setLoading(false);
@@ -239,40 +322,32 @@ function App() {
         return;
       }
 
-
       // --------------------------------
       // STEP 1:
       // CREATE RAZORPAY ORDER
       // --------------------------------
 
-      const response =
-        await fetch(
-          `${API_BASE_URL}/api/payments/${orderId}/create/`,
-          {
-            method: "POST",
+      const response = await fetch(
+        `${API_BASE_URL}/api/payments/${orderId}/create/`,
+        {
+          method: "POST",
 
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
+          headers: {
+            Authorization: `Bearer ${token}`,
 
-              "Content-Type":
-                "application/json",
-            },
+            "Content-Type": "application/json",
+          },
 
-            body: JSON.stringify({}),
-          }
-        );
+          body: JSON.stringify({}),
+        }
+      );
 
-
-      const paymentData =
-        await response.json();
-
+      const paymentData = await response.json();
 
       if (!response.ok) {
-
         setMessage(
           paymentData.detail ||
-          "Unable to create payment order."
+            "Unable to create payment order."
         );
 
         setLoading(false);
@@ -280,12 +355,10 @@ function App() {
         return;
       }
 
-
       console.log(
         "Payment order:",
         paymentData
       );
-
 
       // --------------------------------
       // STEP 2:
@@ -293,7 +366,6 @@ function App() {
       // --------------------------------
 
       if (!window.Razorpay) {
-
         setMessage(
           "Razorpay Checkout failed to load. Please refresh the page."
         );
@@ -303,174 +375,128 @@ function App() {
         return;
       }
 
-
       const options = {
-
         key: RAZORPAY_KEY_ID,
 
-        amount:
-          Math.round(
-            Number(
-              paymentData.amount
-            ) * 100
-          ),
+        amount: Math.round(
+          Number(paymentData.amount) * 100
+        ),
 
         currency: "INR",
 
         name: "AgriConnect AI",
 
-        description:
-          `Payment for Order #${orderId}`,
+        description: `Payment for Order #${orderId}`,
 
         order_id:
           paymentData.razorpay_order_id,
-
 
         // --------------------------------
         // PAYMENT SUCCESS
         // --------------------------------
 
-        handler:
-          async function (
-            paymentResponse
-          ) {
+        handler: async function (
+          paymentResponse
+        ) {
+          try {
+            setMessage(
+              "Payment successful. Verifying payment..."
+            );
 
-            try {
+            // --------------------------------
+            // STEP 3:
+            // VERIFY PAYMENT
+            // --------------------------------
 
-              setMessage(
-                "Payment successful. Verifying payment..."
+            const verifyResponse =
+              await fetch(
+                `${API_BASE_URL}/api/payments/${orderId}/verify/`,
+                {
+                  method: "POST",
+
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+
+                    "Content-Type":
+                      "application/json",
+                  },
+
+                  body: JSON.stringify({
+                    razorpay_payment_id:
+                      paymentResponse.razorpay_payment_id,
+
+                    razorpay_order_id:
+                      paymentResponse.razorpay_order_id,
+
+                    razorpay_signature:
+                      paymentResponse.razorpay_signature,
+                  }),
+                }
               );
 
+            const verifyData =
+              await verifyResponse.json();
 
-              // --------------------------------
-              // STEP 3:
-              // VERIFY PAYMENT
-              // --------------------------------
-
-              const verifyResponse =
-                await fetch(
-                  `${API_BASE_URL}/api/payments/${orderId}/verify/`,
-                  {
-                    method: "POST",
-
-                    headers: {
-                      Authorization:
-                        `Bearer ${token}`,
-
-                      "Content-Type":
-                        "application/json",
-                    },
-
-                    body: JSON.stringify({
-
-                      razorpay_payment_id:
-                        paymentResponse.razorpay_payment_id,
-
-                      razorpay_order_id:
-                        paymentResponse.razorpay_order_id,
-
-                      razorpay_signature:
-                        paymentResponse.razorpay_signature,
-
-                    }),
-                  }
-                );
-
-
-              const verifyData =
-                await verifyResponse.json();
-
-
-              if (
-                verifyResponse.ok
-              ) {
-
-                setMessage(
-                  "✅ Payment successful and verified!"
-                );
-
-              }
-              else {
-
-                setMessage(
-                  verifyData.detail ||
+            if (verifyResponse.ok) {
+              setMessage(
+                "✅ Payment successful and verified!"
+              );
+            } else {
+              setMessage(
+                verifyData.detail ||
                   "Payment verification failed."
-                );
-              }
-
-            }
-            catch (error) {
-
-              console.error(
-                "Payment verification error:",
-                error
-              );
-
-              setMessage(
-                "Payment verification request failed."
               );
             }
-          },
+          } catch (error) {
+            console.error(
+              "Payment verification error:",
+              error
+            );
 
+            setMessage(
+              "Payment verification request failed."
+            );
+          }
+        },
 
         // --------------------------------
         // CUSTOMER DETAILS
         // --------------------------------
 
         prefill: {
-
-          name:
-            "AgriConnect Customer",
-
+          name: "AgriConnect Customer",
         },
-
 
         // --------------------------------
         // RAZORPAY THEME
         // --------------------------------
 
         theme: {
-
-          color:
-            "#2e7d32",
-
+          color: "#2e7d32",
         },
-
 
         // --------------------------------
         // PAYMENT MODAL
         // --------------------------------
 
         modal: {
+          ondismiss: function () {
+            setMessage(
+              "Payment window closed."
+            );
 
-          ondismiss:
-            function () {
-
-              setMessage(
-                "Payment window closed."
-              );
-
-              setLoading(false);
-            },
-
+            setLoading(false);
+          },
         },
-
       };
 
-
       const razorpay =
-        new window.Razorpay(
-          options
-        );
-
+        new window.Razorpay(options);
 
       razorpay.open();
 
       setLoading(false);
-
-    }
-    catch (error) {
-
+    } catch (error) {
       console.error(
         "Payment error:",
         error
@@ -484,18 +510,12 @@ function App() {
     }
   };
 
-
   // ==========================================
-  // LOGIN SCREEN
+  // LOGIN / REGISTER SCREEN
   // ==========================================
 
-  if (
-    !loggedIn ||
-    !userRole
-  ) {
-
+  if (!loggedIn || !userRole) {
     return (
-
       <div className="app-container">
 
         <div className="payment-card">
@@ -504,338 +524,442 @@ function App() {
             🌱 AgriConnect AI
           </h1>
 
-
           <p className="subtitle">
             Farmer-to-Customer Marketplace
           </p>
 
+          {!showRegister ? (
+            <>
+              {/* =================================
+                  LOGIN
+              ================================= */}
 
-          <h2>
-            Login
-          </h2>
+              <h2>
+                Login
+              </h2>
 
+              <form
+                onSubmit={handleLogin}
+              >
 
-          <form
-            onSubmit={handleLogin}
-          >
+                <div className="form-group">
 
-            <div className="form-group">
+                  <label>
+                    Username
+                  </label>
 
-              <label>
-                Username
-              </label>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(event) =>
+                      setUsername(
+                        event.target.value
+                      )
+                    }
+                    placeholder="Enter username"
+                    required
+                  />
 
+                </div>
 
-              <input
-                type="text"
-                value={username}
-                onChange={(event) =>
-                  setUsername(
-                    event.target.value
-                  )
-                }
-                placeholder="Enter username"
-                required
-              />
+                <div className="form-group">
 
-            </div>
+                  <label>
+                    Password
+                  </label>
 
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(event) =>
+                      setPassword(
+                        event.target.value
+                      )
+                    }
+                    placeholder="Enter password"
+                    required
+                  />
 
-            <div className="form-group">
+                </div>
 
-              <label>
-                Password
-              </label>
+                <button
+                  type="submit"
+                  disabled={loading}
+                >
+                  {loading
+                    ? "Logging in..."
+                    : "Login"}
+                </button>
 
+              </form>
 
-              <input
-                type="password"
-                value={password}
-                onChange={(event) =>
-                  setPassword(
-                    event.target.value
-                  )
-                }
-                placeholder="Enter password"
-                required
-              />
+              {/* =================================
+                  REGISTER BUTTON
+              ================================= */}
 
-            </div>
+              <p className="auth-switch">
+                Don't have an account?
+              </p>
 
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => {
+                  setShowRegister(true);
+                  setMessage("");
+                }}
+              >
+                Create Account
+              </button>
+            </>
+          ) : (
+            <>
+              {/* =================================
+                  REGISTRATION
+              ================================= */}
 
-            <button
-              type="submit"
-              disabled={loading}
-            >
+              <h2>
+                Create Account
+              </h2>
 
-              {loading
-                ? "Logging in..."
-                : "Login"}
+              <p className="subtitle">
+                Register as a Customer or Farmer
+              </p>
 
-            </button>
+              <form
+                onSubmit={handleRegister}
+              >
 
-          </form>
+                {/* USERNAME */}
 
+                <div className="form-group">
+
+                  <label>
+                    Username
+                  </label>
+
+                  <input
+                    type="text"
+                    value={registerUsername}
+                    onChange={(event) =>
+                      setRegisterUsername(
+                        event.target.value
+                      )
+                    }
+                    placeholder="Enter username"
+                    required
+                  />
+
+                </div>
+
+                {/* EMAIL */}
+
+                <div className="form-group">
+
+                  <label>
+                    Email
+                  </label>
+
+                  <input
+                    type="email"
+                    value={registerEmail}
+                    onChange={(event) =>
+                      setRegisterEmail(
+                        event.target.value
+                      )
+                    }
+                    placeholder="Enter email"
+                    required
+                  />
+
+                </div>
+
+                {/* PHONE */}
+
+                <div className="form-group">
+
+                  <label>
+                    Phone
+                  </label>
+
+                  <input
+                    type="tel"
+                    value={registerPhone}
+                    onChange={(event) =>
+                      setRegisterPhone(
+                        event.target.value
+                      )
+                    }
+                    placeholder="Enter phone number"
+                    required
+                  />
+
+                </div>
+
+                {/* ROLE */}
+
+                <div className="form-group">
+
+                  <label>
+                    Register As
+                  </label>
+
+                  <select
+                    value={registerRole}
+                    onChange={(event) =>
+                      setRegisterRole(event.target.value)
+                    }
+                    required
+                  >
+                    <option value="CUSTOMER">
+                      Customer
+                    </option>
+
+                    <option value="FARMER">
+                      Farmer
+                    </option>
+                  </select>
+
+                </div>
+
+                {/* =================================
+                    FARMER PROFILE DETAILS
+                ================================= */}
+
+                {registerRole === "FARMER" && (
+                  <>
+                    {/* FARM NAME */}
+
+                    <div className="form-group">
+
+                      <label>
+                        Farm Name
+                      </label>
+
+                      <input
+                        type="text"
+                        value={farmName}
+                        onChange={(event) =>
+                          setFarmName(event.target.value)
+                        }
+                        placeholder="Enter farm name"
+                        required
+                      />
+
+                    </div>
+
+                    {/* ADDRESS */}
+
+                    <div className="form-group">
+
+                      <label>
+                        Farm Address
+                      </label>
+
+                      <textarea
+                        value={farmAddress}
+                        onChange={(event) =>
+                          setFarmAddress(event.target.value)
+                        }
+                        placeholder="Enter farm address"
+                        rows="3"
+                        required
+                      />
+
+                    </div>
+
+                    {/* VILLAGE */}
+
+                    <div className="form-group">
+
+                      <label>
+                        Village
+                      </label>
+
+                      <input
+                        type="text"
+                        value={farmVillage}
+                        onChange={(event) =>
+                          setFarmVillage(event.target.value)
+                        }
+                        placeholder="Enter village"
+                        required
+                      />
+
+                    </div>
+
+                    {/* DISTRICT */}
+
+                    <div className="form-group">
+
+                      <label>
+                        District
+                      </label>
+
+                      <input
+                        type="text"
+                        value={farmDistrict}
+                        onChange={(event) =>
+                          setFarmDistrict(event.target.value)
+                        }
+                        placeholder="Enter district"
+                        required
+                      />
+
+                    </div>
+
+                    {/* STATE */}
+
+                    <div className="form-group">
+
+                      <label>
+                        State
+                      </label>
+
+                      <input
+                        type="text"
+                        value={farmState}
+                        onChange={(event) =>
+                          setFarmState(event.target.value)
+                        }
+                        placeholder="Enter state"
+                        required
+                      />
+
+                    </div>
+
+                    {/* PINCODE */}
+
+                    <div className="form-group">
+
+                      <label>
+                        Pincode
+                      </label>
+
+                      <input
+                        type="text"
+                        value={farmPincode}
+                        onChange={(event) =>
+                          setFarmPincode(event.target.value)
+                        }
+                        placeholder="Enter pincode"
+                        maxLength={10}
+                        required
+                      />
+
+                    </div>
+                  </>
+                )}
+
+                {/* PASSWORD */}
+
+                <div className="form-group">
+
+                  <label>
+                    Password
+                  </label>
+
+                  <input
+                    type="password"
+                    value={registerPassword}
+                    onChange={(event) =>
+                      setRegisterPassword(
+                        event.target.value
+                      )
+                    }
+                    placeholder="Minimum 8 characters"
+                    minLength={8}
+                    required
+                  />
+
+                </div>
+
+                {/* REGISTER */}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                >
+                  {loading
+                    ? "Creating Account..."
+                    : "Register"}
+                </button>
+
+              </form>
+
+              {/* BACK TO LOGIN */}
+
+              <p className="auth-switch">
+                Already have an account?
+              </p>
+
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => {
+                  setShowRegister(false);
+                  setMessage("");
+                }}
+              >
+                Back to Login
+              </button>
+            </>
+          )}
+
+          {/* MESSAGE */}
 
           {message && (
-
             <p className="message">
               {message}
             </p>
-
           )}
 
         </div>
-
       </div>
-
     );
   }
-
 
   // ==========================================
   // FARMER DASHBOARD
   // ==========================================
 
-  if (
-    userRole === "FARMER"
-  ) {
-
+  if (userRole === "FARMER") {
     return (
-
-      <div className="app-container">
-
-        <FarmerDashboard />
-
-        <FarmerNotifications />
-
-        <div className="farmer-logout-container">
-
-          <button
-            className="logout-button"
-            onClick={handleLogout}
-          >
-
-            Logout
-
-          </button>
-
-        </div>
-
-
-        {message && (
-
-          <p className="message">
-            {message}
-          </p>
-
-        )}
-
-      </div>
-
+      <FarmerDashboard
+        onLogout={handleLogout}
+      />
     );
   }
-
 
   // ==========================================
   // CUSTOMER DASHBOARD
   // ==========================================
 
-  if (
-    userRole === "CUSTOMER"
-  ) {
-
+  if (userRole === "CUSTOMER") {
     return (
-
-      <div className="app-container">
-
-        <div className="payment-card">
-
-          <h1>
-            🌱 AgriConnect AI
-          </h1>
-
-
-          <p className="subtitle">
-            Farmer-to-Customer Marketplace
-          </p>
-
-
-          <p className="success-text">
-            ✅ Customer logged in
-          </p>
-
-
-          {/* =================================
-              CUSTOMER SHOPPING
-          ================================= */}
-
-          <CustomerShopping />
-
-          <CustomerCart />
-
-          <CustomerNotifications />
-
-
-
-          {/* =================================
-              CUSTOMER ORDERS
-          ================================= */}
-
-          <CustomerOrders />
-
-
-          {/* =================================
-              RAZORPAY PAYMENT
-          ================================= */}
-
-          <div className="order-box">
-
-            <h2>
-              Payment Test
-            </h2>
-
-
-            <p>
-
-              <strong>
-                Order:
-              </strong>{" "}
-
-              #{orderId}
-
-            </p>
-
-
-            <p>
-
-              <strong>
-                Product:
-              </strong>{" "}
-
-              Potato
-
-            </p>
-
-
-            <p>
-
-              <strong>
-                Quantity:
-              </strong>{" "}
-
-              2 kg
-
-            </p>
-
-
-            <p>
-
-              <strong>
-                Price:
-              </strong>{" "}
-
-              ₹55/kg
-
-            </p>
-
-
-            <p className="total">
-
-              Total: ₹110.00
-
-            </p>
-
-          </div>
-
-
-          <button
-            onClick={handlePayment}
-            disabled={loading}
-          >
-
-            {loading
-              ? "Processing..."
-              : "Pay ₹110"}
-
-          </button>
-
-
-          <button
-            className="logout-button"
-            onClick={handleLogout}
-          >
-
-            Logout
-
-          </button>
-
-
-          {message && (
-
-            <p className="message">
-              {message}
-            </p>
-
-          )}
-
-        </div>
-
-      </div>
-
+      <CustomerDashboard
+        onLogout={handleLogout}
+      />
     );
   }
-
 
   // ==========================================
   // ADMIN DASHBOARD
   // ==========================================
 
-  if (
-    userRole === "ADMIN"
-  ) {
-
+  if (userRole === "ADMIN") {
     return (
-
-      <div className="app-container">
-
-        <AdminDashboard />
-
-
-        <div className="admin-logout-container">
-
-          <button
-            className="logout-button"
-            onClick={handleLogout}
-          >
-
-            Logout
-
-          </button>
-
-        </div>
-
-
-        {message && (
-
-          <p className="message">
-            {message}
-          </p>
-
-        )}
-
-      </div>
-
+        <AdminDashboard
+            onLogout={handleLogout}
+        />
     );
-  }
-
+}
 
   // ==========================================
   // UNKNOWN ROLE
   // ==========================================
 
   return (
-
     <div className="app-container">
 
       <div className="payment-card">
@@ -844,34 +968,27 @@ function App() {
           Unknown User Role
         </h2>
 
-
         <p>
-
           Your account role is:
 
           <strong>
             {" "}
             {userRole}
           </strong>
-
         </p>
 
-
         <button
+          type="button"
           className="logout-button"
           onClick={handleLogout}
         >
-
           Logout
-
         </button>
 
       </div>
 
     </div>
-
   );
 }
-
 
 export default App;

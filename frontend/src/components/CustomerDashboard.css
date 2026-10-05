@@ -1,0 +1,679 @@
+/* =========================================================
+   AGRICONNECT AI - CUSTOMER DASHBOARD
+   Header / Sidebar / Main Layout / Responsive
+========================================================= */
+
+
+/* =========================================================
+   GLOBAL DASHBOARD
+========================================================= */
+
+.customer-dashboard {
+    min-height: 100vh;
+
+    background: #f4faf5;
+
+    color: #173b22;
+
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Arial,
+        sans-serif;
+}
+
+
+/* =========================================================
+   TOP HEADER
+========================================================= */
+
+.customer-header {
+    position: fixed;
+
+    top: 0;
+    left: 0;
+    right: 0;
+
+    height: 76px;
+
+    background: #ffffff;
+
+    border-bottom: 1px solid #e1eee4;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    padding: 0 30px;
+
+    box-sizing: border-box;
+
+    z-index: 1000;
+
+    box-shadow:
+        0 2px 12px rgba(30, 90, 45, 0.06);
+}
+
+
+/* =========================================================
+   BRAND
+========================================================= */
+
+.brand-section {
+    display: flex;
+
+    align-items: center;
+
+    gap: 14px;
+}
+
+.brand-icon {
+    width: 46px;
+    height: 46px;
+
+    border-radius: 12px;
+
+    background: #eaf7ed;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 26px;
+}
+
+.brand-section h1 {
+    margin: 0;
+
+    font-size: 21px;
+
+    font-weight: 750;
+
+    color: #137333;
+
+    line-height: 1.2;
+}
+
+.brand-section p {
+    margin: 4px 0 0;
+
+    font-size: 12px;
+
+    color: #718174;
+}
+
+
+/* =========================================================
+   HEADER RIGHT
+========================================================= */
+
+.header-right {
+    display: flex;
+
+    align-items: center;
+
+    gap: 22px;
+}
+
+
+/* =========================================================
+   HEADER NOTIFICATION BUTTON
+========================================================= */
+
+.header-notification {
+    position: relative;
+
+    width: 44px;
+    height: 44px;
+
+    border: none;
+
+    border-radius: 50%;
+
+    background: #f3f9f4;
+
+    font-size: 20px;
+
+    cursor: pointer;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+.header-notification:hover {
+    background: #e5f4e8;
+
+    transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   HEADER NOTIFICATION BADGE
+========================================================= */
+
+.notification-badge {
+    position: absolute;
+
+    top: -2px;
+    right: -1px;
+
+    min-width: 18px;
+    height: 18px;
+
+    padding: 0 5px;
+
+    box-sizing: border-box;
+
+    background: #e53935;
+
+    color: #ffffff;
+
+    border-radius: 20px;
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+}
+
+
+/* =========================================================
+   CUSTOMER PROFILE
+========================================================= */
+
+.customer-profile {
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+}
+
+.profile-avatar {
+    width: 40px;
+    height: 40px;
+
+    border-radius: 50%;
+
+    background: #20883d;
+
+    color: #ffffff;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-weight: 700;
+
+    font-size: 17px;
+}
+
+.customer-profile div:last-child {
+    display: flex;
+
+    flex-direction: column;
+}
+
+.customer-profile strong {
+    font-size: 13px;
+
+    color: #173b22;
+}
+
+.customer-profile span {
+    margin-top: 3px;
+
+    font-size: 11px;
+
+    color: #7b887e;
+}
+
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+.customer-sidebar {
+    position: fixed;
+
+    top: 76px;
+    left: 0;
+    bottom: 0;
+
+    width: 235px;
+
+    background: #ffffff;
+
+    border-right: 1px solid #e1eee4;
+
+    padding: 28px 15px 20px;
+
+    box-sizing: border-box;
+
+    display: flex;
+
+    flex-direction: column;
+
+    z-index: 900;
+}
+
+
+/* =========================================================
+   SIDEBAR TITLE
+========================================================= */
+
+.sidebar-title {
+    padding: 0 15px 18px;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    letter-spacing: 0.8px;
+
+    color: #789080;
+}
+
+
+/* =========================================================
+   SIDEBAR NAVIGATION
+========================================================= */
+
+.customer-sidebar nav {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 7px;
+}
+
+
+/* =========================================================
+   SIDEBAR ITEM
+========================================================= */
+
+.sidebar-item {
+    width: 100%;
+
+    min-height: 50px;
+
+    border: none;
+
+    border-radius: 11px;
+
+    background: transparent;
+
+    color: #53675a;
+
+    padding: 0 15px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 13px;
+
+    font-size: 14px;
+
+    font-weight: 500;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.sidebar-item:hover {
+    background: #f1f8f2;
+
+    color: #187536;
+}
+
+.sidebar-item.active {
+    background: #e4f4e8;
+
+    color: #08752c;
+
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   SIDEBAR ICON
+========================================================= */
+
+.sidebar-icon {
+    width: 23px;
+
+    font-size: 17px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   SIDEBAR BOTTOM
+========================================================= */
+
+.sidebar-bottom {
+    margin-top: auto;
+
+    padding-top: 18px;
+
+    border-top: 1px solid #e4ebe5;
+}
+
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+.sidebar-item.logout {
+    color: #d93636;
+}
+
+.sidebar-item.logout:hover {
+    background: #fff1f1;
+
+    color: #c62828;
+}
+
+
+/* =========================================================
+   MAIN AREA
+========================================================= */
+
+.customer-main {
+    margin-left: 235px;
+
+    padding-top: 76px;
+
+    min-height: 100vh;
+
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   DASHBOARD STATUS
+========================================================= */
+
+.dashboard-status {
+    min-height: 48px;
+
+    display: flex;
+
+    align-items: center;
+
+    padding: 0 32px;
+
+    box-sizing: border-box;
+
+    background: #f7fcf8;
+
+    border-bottom: 1px solid #e6eee7;
+
+    color: #27703d;
+
+    font-size: 13px;
+
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   STATUS DOT
+========================================================= */
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+
+    margin-right: 9px;
+
+    border-radius: 50%;
+
+    background: #27a844;
+
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   COMPONENT WRAPPER
+   Used by:
+   - CustomerCart
+   - CustomerOrders
+   - CustomerNotifications
+========================================================= */
+
+.customer-component-wrapper {
+    width: 100%;
+
+    max-width: 100%;
+
+    padding: 28px 32px 50px;
+
+    margin: 0 auto;
+
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   COMPONENT CSS SEPARATION
+========================================================= */
+
+/*
+   CustomerShopping.css
+   --------------------
+   Shopping page and product cards.
+
+
+   CustomerCart.css
+   ----------------
+   Cart page and payment UI.
+
+
+   CustomerOrders.css
+   ------------------
+   Orders, timeline and payment UI.
+
+
+   CustomerNotifications.css
+   -------------------------
+   Notifications, loading,
+   error and empty states.
+
+
+   CustomerDashboard.css
+   ---------------------
+   Only common dashboard layout.
+*/
+
+
+/* =========================================================
+   RESPONSIVE - TABLET
+========================================================= */
+
+@media (max-width: 1100px) {
+
+    .customer-sidebar {
+        width: 210px;
+    }
+
+    .customer-main {
+        margin-left: 210px;
+    }
+
+    .customer-header {
+        padding: 0 20px;
+    }
+}
+
+
+/* =========================================================
+   RESPONSIVE - SMALL TABLET
+========================================================= */
+
+@media (max-width: 850px) {
+
+    .customer-sidebar {
+        width: 72px;
+
+        padding-left: 10px;
+
+        padding-right: 10px;
+    }
+
+    .sidebar-title {
+        display: none;
+    }
+
+    .sidebar-item {
+        justify-content: center;
+
+        padding: 0;
+    }
+
+    .sidebar-item > span:last-child {
+        display: none;
+    }
+
+    .customer-main {
+        margin-left: 72px;
+    }
+
+    .brand-section p {
+        display: none;
+    }
+
+    .customer-profile div:last-child {
+        display: none;
+    }
+
+    .customer-component-wrapper {
+        padding-left: 20px;
+
+        padding-right: 20px;
+    }
+}
+
+
+/* =========================================================
+   RESPONSIVE - MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+
+    .customer-header {
+        height: 68px;
+
+        padding: 0 12px;
+    }
+
+    .brand-icon {
+        width: 38px;
+        height: 38px;
+
+        font-size: 21px;
+    }
+
+    .brand-section h1 {
+        font-size: 17px;
+    }
+
+    .customer-sidebar {
+        top: 68px;
+
+        width: 60px;
+    }
+
+    .customer-main {
+        margin-left: 60px;
+
+        padding-top: 68px;
+    }
+
+    .dashboard-status {
+        padding: 0 15px;
+    }
+
+    .customer-component-wrapper {
+        padding: 20px 12px 35px;
+    }
+}
+
+
+/* =========================================================
+   VERY SMALL MOBILE
+========================================================= */
+
+@media (max-width: 420px) {
+
+    .customer-header {
+        padding: 0 8px;
+    }
+
+    .brand-section {
+        gap: 8px;
+    }
+
+    .brand-icon {
+        width: 34px;
+        height: 34px;
+
+        font-size: 18px;
+    }
+
+    .brand-section h1 {
+        font-size: 15px;
+    }
+
+    .header-right {
+        gap: 8px;
+    }
+
+    .header-notification {
+        width: 38px;
+        height: 38px;
+
+        font-size: 17px;
+    }
+
+    .customer-component-wrapper {
+        padding-left: 10px;
+
+        padding-right: 10px;
+    }
+}

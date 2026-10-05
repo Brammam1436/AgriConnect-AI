@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../api/api";
+import "./CustomerOrders.css";
 
 const RAZORPAY_KEY_ID = "rzp_test_Tb9K0WydM5EmRH";
 
@@ -11,6 +12,29 @@ function CustomerOrders() {
     const [payment, setPayment] = useState(null);
     const [paymentLoading, setPaymentLoading] = useState(false);
     const [paymentSuccess, setPaymentSuccess] = useState(false);
+
+    // ==========================================
+    // REVIEW STATES
+    // ==========================================
+
+    const [reviewForms, setReviewForms] = useState({});
+    const [productReviews, setProductReviews] = useState({});
+    const [reviewLoading, setReviewLoading] = useState({});
+    const [reviewMessages, setReviewMessages] = useState({});
+    const [reviewErrors, setReviewErrors] = useState({});
+    const [reviewSubmitting, setReviewSubmitting] = useState({});
+    const [editingReviews, setEditingReviews] = useState({});
+
+    // ==========================================
+    // CLOSE ORDER DETAILS
+    // ==========================================
+
+    const closeOrderDetails = () => {
+        setSelectedOrder(null);
+        setPayment(null);
+        setPaymentSuccess(false);
+        setPaymentLoading(false);
+    };
 
     // ==========================================
     // CANCEL ORDER
@@ -33,9 +57,7 @@ function CustomerOrders() {
             if (response.status === 200) {
                 alert("Order cancelled successfully.");
 
-                setSelectedOrder(null);
-                setPayment(null);
-                setPaymentSuccess(false);
+                closeOrderDetails();
 
                 await fetchOrders();
             }
@@ -81,13 +103,103 @@ function CustomerOrders() {
         try {
             const response = await api.get("/api/orders/");
 
-            setOrders(response.data);
+            setOrders(
+                Array.isArray(response.data)
+                    ? response.data
+                    : response.data?.results || []
+            );
             setLoading(false);
         } catch (err) {
             console.error(err);
             setError("Unable to load orders.");
             setLoading(false);
         }
+    };
+
+    // ==========================================
+    // OPEN ORDER DETAILS
+    // ==========================================
+
+    const handleViewDetails = async (order) => {
+        setSelectedOrder(order);
+        setPayment(null);
+        setPaymentSuccess(false);
+
+        await fetchPaymentDetails(order.id);
+
+        if (order.status === "DELIVERED") {
+            await fetchReviewsForOrder(order);
+        }
+    };
+
+    // ==========================================
+    // FETCH PRODUCT REVIEW
+    // ==========================================
+
+    const fetchProductReview = async (productId) => {
+        try {
+            setReviewLoading((previous) => ({
+                ...previous,
+                [productId]: true,
+            }));
+
+            const response = await api.get(
+                `/api/products/${productId}/reviews/`
+            );
+
+            setProductReviews((previous) => ({
+                ...previous,
+                [productId]: response.data,
+            }));
+
+            if (response.data.my_review) {
+                setReviewForms((previous) => ({
+                    ...previous,
+                    [productId]: {
+                        rating: response.data.my_review.rating,
+                        comment: response.data.my_review.comment || "",
+                    },
+                }));
+            }
+        } catch (err) {
+            console.error(
+                `Unable to load review for product ${productId}:`,
+                err
+            );
+
+            setReviewErrors((previous) => ({
+                ...previous,
+                [productId]:
+                    "Unable to load review information.",
+            }));
+        } finally {
+            setReviewLoading((previous) => ({
+                ...previous,
+                [productId]: false,
+            }));
+        }
+    };
+
+    // ==========================================
+    // FETCH REVIEWS FOR SELECTED ORDER
+    // ==========================================
+
+    const fetchReviewsForOrder = async (order) => {
+        if (!order || order.status !== "DELIVERED") {
+            return;
+        }
+
+        const productIds = [
+            ...new Set(
+                (order.items || []).map((item) => item.product)
+            ),
+        ];
+
+        await Promise.all(
+            productIds.map((productId) =>
+                fetchProductReview(productId)
+            )
+        );
     };
 
     // ==========================================
@@ -111,10 +223,6 @@ function CustomerOrders() {
                 return;
             }
 
-            // ------------------------------------------
-            // CREATE / GET RAZORPAY PAYMENT ORDER
-            // ------------------------------------------
-
             const response = await api.post(
                 `/api/payments/${selectedOrder.id}/create/`,
                 {}
@@ -127,10 +235,6 @@ function CustomerOrders() {
                     "Razorpay Checkout failed to load. Please refresh the page."
                 );
             }
-
-            // ------------------------------------------
-            // RAZORPAY CHECKOUT OPTIONS
-            // ------------------------------------------
 
             const options = {
                 key: RAZORPAY_KEY_ID,
@@ -153,10 +257,6 @@ function CustomerOrders() {
                     try {
                         setPaymentLoading(true);
 
-                        // ------------------------------------------
-                        // VERIFY PAYMENT
-                        // ------------------------------------------
-
                         const verifyResponse =
                             await api.post(
                                 `/api/payments/${selectedOrder.id}/verify/`,
@@ -172,10 +272,6 @@ function CustomerOrders() {
                                 }
                             );
 
-                        // ------------------------------------------
-                        // PAYMENT SUCCESS
-                        // ------------------------------------------
-
                         setPaymentSuccess(true);
 
                         setPayment(
@@ -186,9 +282,7 @@ function CustomerOrders() {
                             "Payment successful and verified!"
                         );
 
-                        // Refresh order list
                         await fetchOrders();
-
                     } catch (error) {
                         console.error(
                             "Payment verification error:",
@@ -219,15 +313,10 @@ function CustomerOrders() {
                 },
             };
 
-            // ------------------------------------------
-            // OPEN RAZORPAY CHECKOUT
-            // ------------------------------------------
-
             const razorpay =
                 new window.Razorpay(options);
 
             razorpay.open();
-
         } catch (error) {
             console.error(
                 "Payment error:",
@@ -245,12 +334,405 @@ function CustomerOrders() {
     };
 
     // ==========================================
+    // REVIEW FORM CHANGE
+    // ==========================================
+
+    const handleReviewChange = (
+        productId,
+        field,
+        value
+    ) => {
+        setReviewForms((previous) => ({
+            ...previous,
+            [productId]: {
+                ...previous[productId],
+                [field]: value,
+            },
+        }));
+
+        setReviewMessages((previous) => ({
+            ...previous,
+            [productId]: "",
+        }));
+
+        setReviewErrors((previous) => ({
+            ...previous,
+            [productId]: "",
+        }));
+    };
+
+    // ==========================================
+    // SUBMIT NEW REVIEW
+    // ==========================================
+
+    const handleSubmitReview = async (productId) => {
+        const form =
+            reviewForms[productId] || {};
+
+        const rating =
+            Number(form.rating || 0);
+
+        const comment =
+            form.comment || "";
+
+        setReviewMessages((previous) => ({
+            ...previous,
+            [productId]: "",
+        }));
+
+        setReviewErrors((previous) => ({
+            ...previous,
+            [productId]: "",
+        }));
+
+        if (rating < 1 || rating > 5) {
+            setReviewErrors((previous) => ({
+                ...previous,
+                [productId]:
+                    "Please select a rating between 1 and 5.",
+            }));
+
+            return;
+        }
+
+        try {
+            setReviewSubmitting((previous) => ({
+                ...previous,
+                [productId]: true,
+            }));
+
+            const response = await api.post(
+                `/api/products/${productId}/reviews/`,
+                {
+                    rating,
+                    comment,
+                }
+            );
+
+            if (response.status === 201) {
+                setReviewMessages((previous) => ({
+                    ...previous,
+                    [productId]:
+                        "Review submitted successfully! ⭐",
+                }));
+
+                setEditingReviews((previous) => ({
+                    ...previous,
+                    [productId]: false,
+                }));
+
+                await fetchProductReview(productId);
+            }
+        } catch (err) {
+            console.error(
+                "Review submission error:",
+                err
+            );
+
+            setReviewErrors((previous) => ({
+                ...previous,
+                [productId]:
+                    err.response?.data?.detail ||
+                    err.response?.data?.rating?.[0] ||
+                    "Unable to submit review.",
+            }));
+        } finally {
+            setReviewSubmitting((previous) => ({
+                ...previous,
+                [productId]: false,
+            }));
+        }
+    };
+
+    // ==========================================
+    // EDIT REVIEW
+    // ==========================================
+
+    const handleUpdateReview = async (productId) => {
+        const productReview =
+            productReviews[productId]?.my_review;
+
+        if (!productReview) {
+            return;
+        }
+
+        const form =
+            reviewForms[productId] || {};
+
+        const rating =
+            Number(form.rating || 0);
+
+        const comment =
+            form.comment || "";
+
+        if (rating < 1 || rating > 5) {
+            setReviewErrors((previous) => ({
+                ...previous,
+                [productId]:
+                    "Please select a rating between 1 and 5.",
+            }));
+
+            return;
+        }
+
+        try {
+            setReviewSubmitting((previous) => ({
+                ...previous,
+                [productId]: true,
+            }));
+
+            setReviewMessages((previous) => ({
+                ...previous,
+                [productId]: "",
+            }));
+
+            setReviewErrors((previous) => ({
+                ...previous,
+                [productId]: "",
+            }));
+
+            const response = await api.put(
+                `/api/products/reviews/${productReview.id}/`,
+                {
+                    rating,
+                    comment,
+                }
+            );
+
+            if (response.status === 200) {
+                setReviewMessages((previous) => ({
+                    ...previous,
+                    [productId]:
+                        "Review updated successfully! ⭐",
+                }));
+
+                setEditingReviews((previous) => ({
+                    ...previous,
+                    [productId]: false,
+                }));
+
+                await fetchProductReview(productId);
+            }
+        } catch (err) {
+            console.error(
+                "Review update error:",
+                err
+            );
+
+            setReviewErrors((previous) => ({
+                ...previous,
+                [productId]:
+                    err.response?.data?.detail ||
+                    err.response?.data?.rating?.[0] ||
+                    "Unable to update review.",
+            }));
+        } finally {
+            setReviewSubmitting((previous) => ({
+                ...previous,
+                [productId]: false,
+            }));
+        }
+    };
+
+    // ==========================================
+    // DELETE REVIEW
+    // ==========================================
+
+    const handleDeleteReview = async (productId) => {
+        const productReview =
+            productReviews[productId]?.my_review;
+
+        if (!productReview) {
+            return;
+        }
+
+        const confirmed = window.confirm(
+            "Are you sure you want to delete your review?"
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            setReviewSubmitting((previous) => ({
+                ...previous,
+                [productId]: true,
+            }));
+
+            setReviewMessages((previous) => ({
+                ...previous,
+                [productId]: "",
+            }));
+
+            setReviewErrors((previous) => ({
+                ...previous,
+                [productId]: "",
+            }));
+
+            const response = await api.delete(
+                `/api/products/reviews/${productReview.id}/`
+            );
+
+            if (response.status === 204) {
+                setReviewMessages((previous) => ({
+                    ...previous,
+                    [productId]:
+                        "Review deleted successfully.",
+                }));
+
+                setReviewForms((previous) => ({
+                    ...previous,
+                    [productId]: {
+                        rating: "",
+                        comment: "",
+                    },
+                }));
+
+                setEditingReviews((previous) => ({
+                    ...previous,
+                    [productId]: false,
+                }));
+
+                await fetchProductReview(productId);
+            }
+        } catch (err) {
+            console.error(
+                "Review delete error:",
+                err
+            );
+
+            setReviewErrors((previous) => ({
+                ...previous,
+                [productId]:
+                    err.response?.data?.detail ||
+                    "Unable to delete review.",
+            }));
+        } finally {
+            setReviewSubmitting((previous) => ({
+                ...previous,
+                [productId]: false,
+            }));
+        }
+    };
+
+    // ==========================================
+    // START EDIT
+    // ==========================================
+
+    const handleStartEditReview = (productId) => {
+        const myReview =
+            productReviews[productId]?.my_review;
+
+        if (!myReview) {
+            return;
+        }
+
+        setReviewForms((previous) => ({
+            ...previous,
+            [productId]: {
+                rating: myReview.rating,
+                comment: myReview.comment || "",
+            },
+        }));
+
+        setReviewMessages((previous) => ({
+            ...previous,
+            [productId]: "",
+        }));
+
+        setReviewErrors((previous) => ({
+            ...previous,
+            [productId]: "",
+        }));
+
+        setEditingReviews((previous) => ({
+            ...previous,
+            [productId]: true,
+        }));
+    };
+
+    // ==========================================
+    // CANCEL EDIT
+    // ==========================================
+
+    const handleCancelEditReview = (productId) => {
+        const myReview =
+            productReviews[productId]?.my_review;
+
+        setEditingReviews((previous) => ({
+            ...previous,
+            [productId]: false,
+        }));
+
+        if (myReview) {
+            setReviewForms((previous) => ({
+                ...previous,
+                [productId]: {
+                    rating: myReview.rating,
+                    comment: myReview.comment || "",
+                },
+            }));
+        }
+
+        setReviewMessages((previous) => ({
+            ...previous,
+            [productId]: "",
+        }));
+
+        setReviewErrors((previous) => ({
+            ...previous,
+            [productId]: "",
+        }));
+    };
+
+    // ==========================================
     // INITIAL LOAD
     // ==========================================
 
     useEffect(() => {
         fetchOrders();
     }, []);
+
+    // ==========================================
+    // CLOSE MODAL WITH ESCAPE
+    // ==========================================
+
+    useEffect(() => {
+        const handleEscape = (event) => {
+            if (event.key === "Escape" && selectedOrder) {
+                closeOrderDetails();
+            }
+        };
+
+        document.addEventListener(
+            "keydown",
+            handleEscape
+        );
+
+        return () => {
+            document.removeEventListener(
+                "keydown",
+                handleEscape
+            );
+        };
+    }, [selectedOrder]);
+
+    // ==========================================
+    // PREVENT BACKGROUND SCROLL WHILE MODAL IS OPEN
+    // ==========================================
+
+    useEffect(() => {
+        if (selectedOrder) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
+        }
+
+        return () => {
+            document.body.style.overflow = "";
+        };
+    }, [selectedOrder]);
 
     // ==========================================
     // STATUS CSS CLASS
@@ -325,6 +807,7 @@ function CustomerOrders() {
         return (
             <div className="orders-container">
                 <h2>My Orders</h2>
+
                 <p className="error-text">
                     {error}
                 </p>
@@ -341,13 +824,12 @@ function CustomerOrders() {
 
             <h2>🛒 My Orders</h2>
 
-            {/* ==========================================
-                ORDERS LIST
-            ========================================== */}
+            {/* ORDERS LIST */}
 
             {orders.length === 0 ? (
                 <div className="empty-orders">
                     <p>No orders found.</p>
+
                     <p>
                         Start shopping from our farmers!
                     </p>
@@ -360,8 +842,6 @@ function CustomerOrders() {
                             className="order-card"
                             key={order.id}
                         >
-
-                            {/* ORDER HEADER */}
 
                             <div className="order-header">
 
@@ -381,11 +861,11 @@ function CustomerOrders() {
 
                             </div>
 
-                            {/* PRODUCTS */}
-
                             <div className="order-products">
 
-                                <h4>Products</h4>
+                                <h4>
+                                    Products
+                                </h4>
 
                                 {order.items.map((item) => (
                                     <div
@@ -424,8 +904,6 @@ function CustomerOrders() {
 
                             </div>
 
-                            {/* ORDER TOTAL */}
-
                             <div className="order-total">
 
                                 <span>
@@ -441,19 +919,14 @@ function CustomerOrders() {
 
                             </div>
 
-                            {/* VIEW DETAILS */}
-
                             <div className="order-actions">
 
                                 <button
+                                    type="button"
                                     className="view-details-button"
-                                    onClick={() => {
-                                        setSelectedOrder(order);
-                                        setPaymentSuccess(false);
-                                        fetchPaymentDetails(
-                                            order.id
-                                        );
-                                    }}
+                                    onClick={() =>
+                                        handleViewDetails(order)
+                                    }
                                 >
                                     View Details
                                 </button>
@@ -467,375 +940,801 @@ function CustomerOrders() {
             )}
 
             {/* ==========================================
-                SELECTED ORDER DETAILS
+                SELECTED ORDER DETAILS - POPUP MODAL
             ========================================== */}
 
             {selectedOrder && (
+                <div
+                    className="customer-order-modal-overlay"
+                    onClick={closeOrderDetails}
+                    role="presentation"
+                    style={{
+                        position: "fixed",
+                        inset: 0,
+                        zIndex: 9999,
+                        background: "rgba(0, 0, 0, 0.55)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: "24px",
+                        overflowY: "auto",
+                        boxSizing: "border-box",
+                    }}
+                >
 
-                <div className="order-details">
+                    <div
+                        className="order-details customer-order-modal"
+                        onClick={(event) =>
+                            event.stopPropagation()
+                        }
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="customer-order-details-title"
+                        style={{
+                            width: "100%",
+                            maxWidth: "900px",
+                            maxHeight: "92vh",
+                            overflowY: "auto",
+                            margin: "auto",
+                            position: "relative",
+                            background: "#ffffff",
+                            borderRadius: "18px",
+                            boxShadow:
+                                "0 20px 60px rgba(0, 0, 0, 0.25)",
+                            padding: "28px",
+                            boxSizing: "border-box",
+                        }}
+                    >
 
-                    {/* DETAILS HEADER */}
+                        {/* MODAL HEADER */}
 
-                    <div className="order-details-header">
+                        <div className="order-details-header">
 
-                        <h2>
-                            Order #{selectedOrder.id}
-                        </h2>
+                            <div>
+                                <span className="customer-order-modal-label">
+                                    ORDER DETAILS
+                                </span>
 
-                        <button
-                            className="close-details-button"
-                            onClick={() => {
-                                setSelectedOrder(null);
-                                setPayment(null);
-                                setPaymentSuccess(false);
-                            }}
-                        >
-                            ✕
-                        </button>
+                                <h2 id="customer-order-details-title">
+                                    📦 Order #{selectedOrder.id}
+                                </h2>
+                            </div>
 
-                    </div>
-
-                    {/* ORDER STATUS */}
-
-                    <p>
-
-                        <strong>
-                            Status:
-                        </strong>{" "}
-
-                        <span
-                            className={`status-badge ${getStatusClass(
-                                selectedOrder.status
-                            )}`}
-                        >
-                            {selectedOrder.status}
-                        </span>
-
-                    </p>
-
-                    {/* ==========================================
-                        ORDER TRACKING
-                    ========================================== */}
-
-                    <div className="order-timeline">
-
-                        <h3>
-                            📦 Order Tracking
-                        </h3>
-
-                        {getStatusSteps(
-                            selectedOrder.status
-                        ).map((step, index) => (
-
-                            <div
-                                className={`timeline-step ${
-                                    step.completed
-                                        ? "timeline-completed"
-                                        : ""
-                                }`}
-                                key={step.name}
+                            <button
+                                type="button"
+                                className="close-details-button"
+                                onClick={closeOrderDetails}
+                                aria-label="Close order details"
                             >
+                                ✕
+                            </button>
 
-                                <div className="timeline-icon">
-                                    {step.completed
-                                        ? "✓"
-                                        : "○"}
+                        </div>
+
+                        {/* ORDER STATUS */}
+
+                        <p>
+
+                            <strong>
+                                Status:
+                            </strong>{" "}
+
+                            <span
+                                className={`status-badge ${getStatusClass(
+                                    selectedOrder.status
+                                )}`}
+                            >
+                                {selectedOrder.status}
+                            </span>
+
+                        </p>
+
+                        {/* ORDER TRACKING */}
+
+                        <div className="order-timeline">
+
+                            <h3>
+                                📦 Order Tracking
+                            </h3>
+
+                            {getStatusSteps(
+                                selectedOrder.status
+                            ).map((step, index) => (
+                                <div
+                                    className={`timeline-step ${
+                                        step.completed
+                                            ? "timeline-completed"
+                                            : ""
+                                    }`}
+                                    key={step.name}
+                                >
+
+                                    <div className="timeline-icon">
+                                        {step.completed
+                                            ? "✓"
+                                            : "○"}
+                                    </div>
+
+                                    <div className="timeline-content">
+
+                                        <strong>
+                                            {step.name}
+                                        </strong>
+
+                                        {index <
+                                            getStatusSteps(
+                                                selectedOrder.status
+                                            ).length - 1 && (
+                                            <div className="timeline-line"></div>
+                                        )}
+
+                                    </div>
+
+                                </div>
+                            ))}
+
+                            {selectedOrder.status ===
+                                "CANCELLED" && (
+                                <div className="timeline-cancelled">
+
+                                    <div className="timeline-icon">
+                                        ✕
+                                    </div>
+
+                                    <div className="timeline-content">
+
+                                        <strong>
+                                            ORDER CANCELLED
+                                        </strong>
+
+                                    </div>
+
+                                </div>
+                            )}
+
+                        </div>
+
+                        {/* DELIVERY ADDRESS */}
+
+                        <div className="order-delivery-address">
+
+                            <div className="delivery-address-header">
+
+                                <div className="delivery-address-icon">
+                                    📍
                                 </div>
 
-                                <div className="timeline-content">
+                                <div>
 
-                                    <strong>
-                                        {step.name}
-                                    </strong>
+                                    <h3>
+                                        Delivery Address
+                                    </h3>
 
-                                    {index <
-                                        getStatusSteps(
-                                            selectedOrder.status
-                                        ).length - 1 && (
-                                        <div className="timeline-line"></div>
-                                    )}
+                                    <p>
+                                        Address used for this order
+                                    </p>
 
                                 </div>
 
                             </div>
 
-                        ))}
+                            {selectedOrder.delivery_name ? (
+                                <div className="delivery-address-content">
 
-                        {selectedOrder.status ===
-                            "CANCELLED" && (
+                                    <div className="delivery-address-name-row">
 
-                            <div className="timeline-cancelled">
+                                        <strong>
+                                            {selectedOrder.delivery_name}
+                                        </strong>
 
-                                <div className="timeline-icon">
-                                    ✕
+                                        <span>
+                                            {selectedOrder.delivery_phone}
+                                        </span>
+
+                                    </div>
+
+                                    <p>
+                                        {selectedOrder.delivery_address_line1}
+                                    </p>
+
+                                    {selectedOrder.delivery_address_line2 && (
+                                        <p>
+                                            {selectedOrder.delivery_address_line2}
+                                        </p>
+                                    )}
+
+                                    <p>
+                                        {selectedOrder.delivery_city},{" "}
+                                        {selectedOrder.delivery_state}{" "}
+                                        -{" "}
+                                        {selectedOrder.delivery_postal_code}
+                                    </p>
+
+                                    <p>
+                                        {selectedOrder.delivery_country}
+                                    </p>
+
                                 </div>
+                            ) : (
+                                <div className="delivery-address-unavailable">
 
-                                <div className="timeline-content">
+                                    <span>
+                                        ⚠️
+                                    </span>
+
+                                    <p>
+                                        Delivery address information is not available
+                                        for this order.
+                                    </p>
+
+                                </div>
+                            )}
+
+                        </div>
+
+                        {/* PRODUCTS DETAILS */}
+
+                        <h3>
+                            Products
+                        </h3>
+
+                        {(selectedOrder.items || []).map((item) => (
+                            <div
+                                className="details-product"
+                                key={item.id}
+                            >
+
+                                <div>
 
                                     <strong>
-                                        ORDER CANCELLED
+                                        🌱{" "}
+                                        {item.product_name}
                                     </strong>
 
+                                    <p>
+                                        {Number(
+                                            item.quantity
+                                        ).toFixed(2)}{" "}
+                                        kg × ₹
+                                        {Number(
+                                            item.price_per_kg
+                                        ).toFixed(2)}
+                                    </p>
+
                                 </div>
+
+                                <strong>
+                                    ₹
+                                    {Number(
+                                        item.subtotal
+                                    ).toFixed(2)}
+                                </strong>
+
+                            </div>
+                        ))}
+
+                        {/* REVIEW SECTION */}
+
+                        {selectedOrder.status ===
+                            "DELIVERED" && (
+                            <div className="order-review-section">
+
+                                <div className="order-review-heading">
+
+                                    <div>
+
+                                        <h3>
+                                            ⭐ Product Reviews
+                                        </h3>
+
+                                        <p>
+                                            Share your experience
+                                            with the farmer.
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+                                {(selectedOrder.items || []).map(
+                                    (item) => {
+
+                                        const productId =
+                                            item.product;
+
+                                        const reviewData =
+                                            productReviews[
+                                                productId
+                                            ];
+
+                                        const form =
+                                            reviewForms[
+                                                productId
+                                            ] || {};
+
+                                        const myReview =
+                                            reviewData?.my_review;
+
+                                        const isEditing =
+                                            editingReviews[
+                                                productId
+                                            ];
+
+                                        const isLoading =
+                                            reviewLoading[
+                                                productId
+                                            ];
+
+                                        const isSubmitting =
+                                            reviewSubmitting[
+                                                productId
+                                            ];
+
+                                        return (
+                                            <div
+                                                className="order-review-card"
+                                                key={item.id}
+                                            >
+
+                                                <div className="order-review-product">
+
+                                                    <strong>
+                                                        🌱{" "}
+                                                        {item.product_name}
+                                                    </strong>
+
+                                                    <span>
+                                                        Delivered
+                                                    </span>
+
+                                                </div>
+
+                                                {isLoading ? (
+                                                    <div className="review-loading">
+                                                        Loading review information...
+                                                    </div>
+                                                ) : myReview &&
+                                                  !isEditing ? (
+                                                    <div className="customer-existing-review">
+
+                                                        <div className="existing-review-header">
+
+                                                            <strong>
+                                                                ⭐ Your Review
+                                                            </strong>
+
+                                                            <span>
+                                                                {new Date(
+                                                                    myReview.updated_at ||
+                                                                    myReview.created_at
+                                                                ).toLocaleDateString()}
+                                                            </span>
+
+                                                        </div>
+
+                                                        <div className="existing-review-rating">
+
+                                                            {[1, 2, 3, 4, 5].map(
+                                                                (rating) => (
+                                                                    <span
+                                                                        key={rating}
+                                                                        className={
+                                                                            rating <=
+                                                                            Number(
+                                                                                myReview.rating
+                                                                            )
+                                                                                ? "existing-star active"
+                                                                                : "existing-star"
+                                                                        }
+                                                                    >
+                                                                        ⭐
+                                                                    </span>
+                                                                )
+                                                            )}
+
+                                                            <span className="existing-rating-number">
+                                                                {myReview.rating}/5
+                                                            </span>
+
+                                                        </div>
+
+                                                        {myReview.comment && (
+                                                            <p className="existing-review-comment">
+                                                                {myReview.comment}
+                                                            </p>
+                                                        )}
+
+                                                        <div className="review-action-buttons">
+
+                                                            <button
+                                                                type="button"
+                                                                className="edit-review-button"
+                                                                onClick={() =>
+                                                                    handleStartEditReview(
+                                                                        productId
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    isSubmitting
+                                                                }
+                                                            >
+                                                                ✏️ Edit Review
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                className="delete-review-button"
+                                                                onClick={() =>
+                                                                    handleDeleteReview(
+                                                                        productId
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    isSubmitting
+                                                                }
+                                                            >
+                                                                {isSubmitting
+                                                                    ? "⏳ Processing..."
+                                                                    : "🗑️ Delete Review"}
+                                                            </button>
+
+                                                        </div>
+
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="review-form-title">
+
+                                                            <strong>
+                                                                {isEditing
+                                                                    ? "✏️ Edit Your Review"
+                                                                    : "⭐ Write Your Review"}
+                                                            </strong>
+
+                                                        </div>
+
+                                                        <div className="review-rating-field">
+
+                                                            <label>
+                                                                Rating
+                                                            </label>
+
+                                                            <div className="rating-buttons">
+
+                                                                {[1, 2, 3, 4, 5].map(
+                                                                    (rating) => (
+                                                                        <button
+                                                                            type="button"
+                                                                            key={rating}
+                                                                            className={
+                                                                                Number(
+                                                                                    form.rating
+                                                                                ) === rating
+                                                                                    ? "rating-star selected"
+                                                                                    : "rating-star"
+                                                                            }
+                                                                            onClick={() =>
+                                                                                handleReviewChange(
+                                                                                    productId,
+                                                                                    "rating",
+                                                                                    rating
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            ⭐
+                                                                        </button>
+                                                                    )
+                                                                )}
+
+                                                            </div>
+
+                                                        </div>
+
+                                                        <div className="review-comment-field">
+
+                                                            <label>
+                                                                Comment
+                                                            </label>
+
+                                                            <textarea
+                                                                rows="3"
+                                                                placeholder="Write your experience with this product..."
+                                                                value={
+                                                                    form.comment ||
+                                                                    ""
+                                                                }
+                                                                onChange={(event) =>
+                                                                    handleReviewChange(
+                                                                        productId,
+                                                                        "comment",
+                                                                        event.target.value
+                                                                    )
+                                                                }
+                                                            />
+
+                                                        </div>
+
+                                                        {reviewErrors[
+                                                            productId
+                                                        ] && (
+                                                            <div className="review-error">
+                                                                ❌{" "}
+                                                                {
+                                                                    reviewErrors[
+                                                                        productId
+                                                                    ]
+                                                                }
+                                                            </div>
+                                                        )}
+
+                                                        {reviewMessages[
+                                                            productId
+                                                        ] && (
+                                                            <div className="review-success">
+                                                                ✅{" "}
+                                                                {
+                                                                    reviewMessages[
+                                                                        productId
+                                                                    ]
+                                                                }
+                                                            </div>
+                                                        )}
+
+                                                        <div className="review-form-actions">
+
+                                                            <button
+                                                                type="button"
+                                                                className="submit-review-button"
+                                                                onClick={() =>
+                                                                    isEditing
+                                                                        ? handleUpdateReview(
+                                                                              productId
+                                                                          )
+                                                                        : handleSubmitReview(
+                                                                              productId
+                                                                          )
+                                                                }
+                                                                disabled={
+                                                                    isSubmitting
+                                                                }
+                                                            >
+                                                                {isSubmitting
+                                                                    ? "⏳ Processing..."
+                                                                    : isEditing
+                                                                        ? "✏️ Update Review"
+                                                                        : "⭐ Submit Review"}
+                                                            </button>
+
+                                                            {isEditing && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="cancel-edit-review-button"
+                                                                    onClick={() =>
+                                                                        handleCancelEditReview(
+                                                                            productId
+                                                                        )
+                                                                    }
+                                                                    disabled={
+                                                                        isSubmitting
+                                                                    }
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            )}
+
+                                                        </div>
+                                                    </>
+                                                )}
+
+                                                {reviewErrors[
+                                                    productId
+                                                ] &&
+                                                    myReview &&
+                                                    !isEditing && (
+                                                        <div className="review-error">
+                                                            ❌{" "}
+                                                            {
+                                                                reviewErrors[
+                                                                    productId
+                                                                ]
+                                                            }
+                                                        </div>
+                                                    )}
+
+                                                {reviewMessages[
+                                                    productId
+                                                ] &&
+                                                    myReview &&
+                                                    !isEditing && (
+                                                        <div className="review-success">
+                                                            ✅{" "}
+                                                            {
+                                                                reviewMessages[
+                                                                    productId
+                                                                ]
+                                                            }
+                                                        </div>
+                                                    )}
+
+                                            </div>
+                                        );
+                                    }
+                                )}
 
                             </div>
                         )}
 
-                    </div>
+                        {/* ORDER TOTAL */}
 
-                    {/* ==========================================
-                        PRODUCTS DETAILS
-                    ========================================== */}
+                        <div className="details-total">
 
-                    <h3>
-                        Products
-                    </h3>
-
-                    {selectedOrder.items.map((item) => (
-
-                        <div
-                            className="details-product"
-                            key={item.id}
-                        >
-
-                            <div>
-
-                                <strong>
-                                    🌱{" "}
-                                    {item.product_name}
-                                </strong>
-
-                                <p>
-                                    {Number(
-                                        item.quantity
-                                    ).toFixed(2)}{" "}
-                                    kg × ₹
-                                    {Number(
-                                        item.price_per_kg
-                                    ).toFixed(2)}
-                                </p>
-
-                            </div>
+                            <span>
+                                Total
+                            </span>
 
                             <strong>
                                 ₹
                                 {Number(
-                                    item.subtotal
+                                    selectedOrder.total_amount
                                 ).toFixed(2)}
                             </strong>
 
                         </div>
 
-                    ))}
+                        {/* PAYMENT INFORMATION */}
 
-                    {/* ORDER TOTAL */}
+                        <div className="payment-details">
 
-                    <div className="details-total">
+                            <h3>
+                                💳 Payment Information
+                            </h3>
 
-                        <span>
-                            Total
-                        </span>
-
-                        <strong>
-                            ₹
-                            {Number(
-                                selectedOrder.total_amount
-                            ).toFixed(2)}
-                        </strong>
-
-                    </div>
-
-                    {/* ==========================================
-                        PAYMENT INFORMATION
-                    ========================================== */}
-
-                    <div className="payment-details">
-
-                        <h3>
-                            💳 Payment Information
-                        </h3>
-
-                        {paymentLoading ? (
-
-                            <p>
-                                Loading payment information...
-                            </p>
-
-                        ) : payment ? (
-
-                            <>
-
-                                {/* PAYMENT STATUS */}
-
+                            {paymentLoading ? (
                                 <p>
-                                    <strong>
-                                        Payment Status:
-                                    </strong>{" "}
-
-                                    <span className="payment-success">
-                                        {payment.status}
-                                    </span>
+                                    Loading payment information...
                                 </p>
+                            ) : payment ? (
+                                <>
+                                    <p>
+                                        <strong>
+                                            Payment Status:
+                                        </strong>{" "}
 
-                                {/* PAYMENT AMOUNT */}
+                                        <span className="payment-success">
+                                            {payment.status}
+                                        </span>
+                                    </p>
 
-                                <p>
-                                    <strong>
-                                        Amount:
-                                    </strong>{" "}
-                                    ₹
-                                    {Number(
-                                        payment.amount
-                                    ).toFixed(2)}
-                                </p>
+                                    <p>
+                                        <strong>
+                                            Amount:
+                                        </strong>{" "}
+                                        ₹
+                                        {Number(
+                                            payment.amount
+                                        ).toFixed(2)}
+                                    </p>
 
-                                {/* RAZORPAY PAYMENT ID */}
+                                    <p>
+                                        <strong>
+                                            Razorpay Payment ID:
+                                        </strong>{" "}
 
-                                <p>
-                                    <strong>
-                                        Razorpay Payment ID:
-                                    </strong>{" "}
+                                        {payment.razorpay_payment_id ||
+                                            "N/A"}
+                                    </p>
 
-                                    {payment.razorpay_payment_id ||
-                                        "N/A"}
-                                </p>
+                                    <p>
+                                        <strong>
+                                            Razorpay Order ID:
+                                        </strong>{" "}
 
-                                {/* RAZORPAY ORDER ID */}
+                                        {payment.razorpay_order_id ||
+                                            "N/A"}
+                                    </p>
 
-                                <p>
-                                    <strong>
-                                        Razorpay Order ID:
-                                    </strong>{" "}
+                                    {["CREATED", "FAILED"].includes(
+                                        payment.status
+                                    ) &&
+                                        !paymentSuccess &&
+                                        selectedOrder.status !==
+                                            "CANCELLED" && (
+                                            <button
+                                                type="button"
+                                                className="pay-now-button"
+                                                onClick={handlePayment}
+                                                disabled={
+                                                    paymentLoading
+                                                }
+                                            >
+                                                {paymentLoading
+                                                    ? "⏳ Processing Payment..."
+                                                    : `💳 Pay ₹${Number(
+                                                          payment.amount
+                                                      ).toFixed(2)}`}
+                                            </button>
+                                        )}
 
-                                    {payment.razorpay_order_id}
-                                </p>
+                                    {paymentSuccess && (
+                                        <div className="payment-completed">
 
-                                {/* ==================================
-                                    PAY NOW BUTTON
-                                ================================== */}
+                                            <div className="payment-success-icon">
+                                                ✓
+                                            </div>
 
-                                {["CREATED", "FAILED"].includes(
-                                    payment.status
-                                ) &&
-                                    !paymentSuccess &&
-                                    selectedOrder.status !==
-                                        "CANCELLED" && (
+                                            <h3>
+                                                Payment Completed
+                                            </h3>
 
-                                    <button
-                                        type="button"
-                                        className="pay-now-button"
-                                        onClick={handlePayment}
-                                        disabled={
-                                            paymentLoading
-                                        }
-                                    >
-                                        {paymentLoading
-                                            ? "⏳ Processing Payment..."
-                                            : `💳 Pay ₹${Number(
-                                                payment.amount
-                                            ).toFixed(2)}`}
-                                    </button>
+                                            <p>
+                                                Your payment has
+                                                been successfully
+                                                verified.
+                                            </p>
 
-                                )}
-
-                                {/* ==================================
-                                    PAYMENT COMPLETED
-                                ================================== */}
-
-                                {paymentSuccess && (
-
-                                    <div className="payment-completed">
-
-                                        <div className="payment-success-icon">
-                                            ✓
                                         </div>
-
-                                        <h3>
-                                            Payment Completed
-                                        </h3>
-
-                                        <p>
-                                            Your payment has
-                                            been successfully
-                                            verified.
-                                        </p>
-
-                                    </div>
-
-                                )}
-
-                            </>
-
-                        ) : (
-
-                            <p>
-                                No payment information available.
-                            </p>
-
-                        )}
-
-                    </div>
-
-                    {/* ==========================================
-                        CANCEL ORDER
-                    ========================================== */}
-
-                    {[
-                        "PENDING",
-                        "CONFIRMED",
-                    ].includes(
-                        selectedOrder.status
-                    ) && (
-
-                        <div className="cancel-order-section">
-
-                            <button
-                                className="cancel-order-button"
-                                onClick={() =>
-                                    handleCancelOrder(
-                                        selectedOrder.id
-                                    )
-                                }
-                            >
-                                Cancel Order
-                            </button>
+                                    )}
+                                </>
+                            ) : (
+                                <p>
+                                    No payment information available.
+                                </p>
+                            )}
 
                         </div>
 
-                    )}
+                        {/* CANCEL ORDER */}
 
-                    {/* ==========================================
-                        ORDER DATES
-                    ========================================== */}
+                        {[
+                            "PENDING",
+                            "CONFIRMED",
+                        ].includes(
+                            selectedOrder.status
+                        ) && (
+                            <div className="cancel-order-section">
 
-                    <div className="order-dates">
+                                <button
+                                    type="button"
+                                    className="cancel-order-button"
+                                    onClick={() =>
+                                        handleCancelOrder(
+                                            selectedOrder.id
+                                        )
+                                    }
+                                >
+                                    Cancel Order
+                                </button>
 
-                        <p>
+                            </div>
+                        )}
 
-                            <strong>
-                                Order Date:
-                            </strong>{" "}
+                        {/* ORDER DATES */}
 
-                            {new Date(
-                                selectedOrder.created_at
-                            ).toLocaleString()}
+                        <div className="order-dates">
 
-                        </p>
+                            <p>
+                                <strong>
+                                    Order Date:
+                                </strong>{" "}
 
-                        <p>
+                                {new Date(
+                                    selectedOrder.created_at
+                                ).toLocaleString()}
+                            </p>
 
-                            <strong>
-                                Last Updated:
-                            </strong>{" "}
+                            <p>
+                                <strong>
+                                    Last Updated:
+                                </strong>{" "}
 
-                            {new Date(
-                                selectedOrder.updated_at
-                            ).toLocaleString()}
+                                {new Date(
+                                    selectedOrder.updated_at
+                                ).toLocaleString()}
+                            </p>
 
-                        </p>
+                        </div>
 
                     </div>
-
                 </div>
             )}
 
