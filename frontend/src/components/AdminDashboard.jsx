@@ -17,9 +17,19 @@ function AdminDashboard({ onLogout }) {
         total_users: 0,
         total_farmers: 0,
         total_customers: 0,
+        total_delivery_partners: 0,
+        active_delivery_partners: 0,
+        inactive_delivery_partners: 0,
         total_products: 0,
         total_orders: 0,
         total_payments: 0,
+        active_users: 0,
+        verified_farmers: 0,
+        pending_farmers: 0,
+        pending_orders: 0,
+        delivered_orders: 0,
+        successful_payments: 0,
+        total_revenue: "0.00",
     });
 
     // ==========================================
@@ -28,6 +38,11 @@ function AdminDashboard({ onLogout }) {
 
     const [users, setUsers] = useState([]);
     const [usersLoading, setUsersLoading] = useState(false);
+    const [userSearch, setUserSearch] = useState("");
+    const [userRoleFilter, setUserRoleFilter] = useState("ALL");
+    const [userStatusFilter, setUserStatusFilter] = useState("ALL");
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [userActionId, setUserActionId] = useState(null);
 
     const [editingUser, setEditingUser] = useState(null);
 
@@ -57,6 +72,30 @@ function AdminDashboard({ onLogout }) {
     });
 
     // ==========================================
+    // FARMER VERIFICATION
+    // ==========================================
+
+    const [farmerProfiles, setFarmerProfiles] = useState([]);
+    const [farmerVerificationLoading, setFarmerVerificationLoading] = useState(false);
+    const [farmerVerificationActionId, setFarmerVerificationActionId] = useState(null);
+    const [farmerVerificationSearch, setFarmerVerificationSearch] = useState("");
+    const [farmerVerificationFilter, setFarmerVerificationFilter] = useState("ALL");
+
+    // ==========================================
+    // DELIVERY PARTNER MANAGEMENT
+    // ==========================================
+
+    const [deliveryPartners, setDeliveryPartners] = useState([]);
+    const [deliveryPartnersLoading, setDeliveryPartnersLoading] = useState(false);
+    const [deliveryPartnerActionId, setDeliveryPartnerActionId] = useState(null);
+    const [deliveryPartnerSearch, setDeliveryPartnerSearch] = useState("");
+    const [deliveryPartnerFilter, setDeliveryPartnerFilter] = useState("ALL");
+    const [selectedDeliveryPartner, setSelectedDeliveryPartner] = useState(null);
+    const [deliveryPartnerRejectOpen, setDeliveryPartnerRejectOpen] = useState(false);
+    const [deliveryPartnerRejectionReason, setDeliveryPartnerRejectionReason] = useState("");
+    const [deliveryPartnerRejectLoading, setDeliveryPartnerRejectLoading] = useState(false);
+
+    // ==========================================
     // ORDERS
     // ==========================================
 
@@ -68,6 +107,11 @@ function AdminDashboard({ onLogout }) {
 
     const [orderStatusLoading, setOrderStatusLoading] = useState(false);
     const [selectedOrderStatus, setSelectedOrderStatus] = useState("");
+
+    // Delivery partner assignment
+    const [deliveryAssignmentLoading, setDeliveryAssignmentLoading] = useState(false);
+    const [selectedDeliveryPartnerId, setSelectedDeliveryPartnerId] = useState("");
+    const [orderDeliveryAssignments, setOrderDeliveryAssignments] = useState({});
 
     // ==========================================
     // PAYMENTS
@@ -117,6 +161,9 @@ function AdminDashboard({ onLogout }) {
     const [unreadNotifications, setUnreadNotifications] = useState(0);
     const [notificationsLoading, setNotificationsLoading] =
         useState(false);
+    const [notificationSearch, setNotificationSearch] = useState("");
+    const [notificationFilter, setNotificationFilter] = useState("ALL");
+    const [selectedNotification, setSelectedNotification] = useState(null);
 
     // ==========================================
     // GENERAL LOADING
@@ -150,6 +197,16 @@ function AdminDashboard({ onLogout }) {
             id: "products",
             icon: "🥕",
             label: "Products",
+        },
+        {
+            id: "farmer-verification",
+            icon: "🛡️",
+            label: "Farmer Verification",
+        },
+        {
+            id: "delivery-partners",
+            icon: "🚚",
+            label: "Delivery Partners",
         },
         {
             id: "orders",
@@ -221,6 +278,15 @@ function AdminDashboard({ onLogout }) {
                 total_customers:
                     Number(data.total_customers ?? 0),
 
+                total_delivery_partners:
+                    Number(data.total_delivery_partners ?? 0),
+
+                active_delivery_partners:
+                    Number(data.active_delivery_partners ?? 0),
+
+                inactive_delivery_partners:
+                    Number(data.inactive_delivery_partners ?? 0),
+
                 total_products:
                     Number(data.total_products ?? 0),
 
@@ -229,6 +295,27 @@ function AdminDashboard({ onLogout }) {
 
                 total_payments:
                     Number(data.total_payments ?? 0),
+
+                active_users:
+                    Number(data.active_users ?? 0),
+
+                verified_farmers:
+                    Number(data.verified_farmers ?? 0),
+
+                pending_farmers:
+                    Number(data.pending_farmers ?? 0),
+
+                pending_orders:
+                    Number(data.pending_orders ?? 0),
+
+                delivered_orders:
+                    Number(data.delivered_orders ?? 0),
+
+                successful_payments:
+                    Number(data.successful_payments ?? 0),
+
+                total_revenue:
+                    data.total_revenue ?? "0.00",
             });
         } catch (error) {
             console.error(
@@ -275,6 +362,21 @@ function AdminDashboard({ onLogout }) {
             );
 
             setUsers(userData);
+
+            const deliveryPartners = userData.filter(
+                (user) => user.role === "DELIVERY_PARTNER"
+            );
+
+            setStats((previous) => ({
+                ...previous,
+                total_delivery_partners: deliveryPartners.length,
+                active_delivery_partners: deliveryPartners.filter(
+                    (user) => user.is_active === true
+                ).length,
+                inactive_delivery_partners: deliveryPartners.filter(
+                    (user) => user.is_active === false
+                ).length,
+            }));
         } catch (error) {
             console.error(
                 "Fetch users error:",
@@ -337,6 +439,1159 @@ function AdminDashboard({ onLogout }) {
         } finally {
             setProductsLoading(false);
         }
+    };
+
+    // ==========================================
+    // FETCH DELIVERY PARTNERS
+    // ==========================================
+
+    const fetchDeliveryPartners = async () => {
+        try {
+            setDeliveryPartnersLoading(true);
+
+            const response = await api.get(
+                "/api/auth/admin/delivery-partners/"
+            );
+
+            const partnerData = extractList(
+                response.data,
+                ["delivery_partners", "partners", "data"]
+            );
+
+            setDeliveryPartners(partnerData);
+        } catch (error) {
+            console.error(
+                "Fetch delivery partners error:",
+                error
+            );
+
+            setDeliveryPartners([]);
+
+            setMessage(
+                error.response?.data?.detail ||
+                    error.response?.data?.message ||
+                    error.response?.data?.error ||
+                    "Unable to load delivery partner applications."
+            );
+        } finally {
+            setDeliveryPartnersLoading(false);
+        }
+    };
+
+    // ==========================================
+    // APPROVE DELIVERY PARTNER
+    // ==========================================
+
+    const handleApproveDeliveryPartner = async (partner) => {
+        const confirmed = window.confirm(
+            `Approve delivery partner "${partner.full_name || partner.username || "this partner"}"?`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            setDeliveryPartnerActionId(partner.id);
+            setMessage("");
+
+            const response = await api.put(
+                `/api/auth/admin/delivery-partners/${partner.id}/approve/`
+            );
+
+            const updatedPartner =
+                response.data?.delivery_partner || null;
+
+            setDeliveryPartners((previous) =>
+                previous.map((item) =>
+                    item.id === partner.id
+                        ? {
+                              ...item,
+                              ...(updatedPartner || {}),
+                              approval_status: "APPROVED",
+                              is_active: true,
+                              rejection_reason: "",
+                          }
+                        : item
+                )
+            );
+
+            setSelectedDeliveryPartner((previous) =>
+                previous?.id === partner.id
+                    ? {
+                          ...previous,
+                          ...(updatedPartner || {}),
+                          approval_status: "APPROVED",
+                          is_active: true,
+                          rejection_reason: "",
+                      }
+                    : previous
+            );
+
+            setStats((previous) => ({
+                ...previous,
+                active_delivery_partners: Math.max(
+                    previous.active_delivery_partners +
+                        (partner.is_active ? 0 : 1),
+                    0
+                ),
+                inactive_delivery_partners: Math.max(
+                    previous.inactive_delivery_partners -
+                        (partner.is_active ? 0 : 1),
+                    0
+                ),
+            }));
+
+            setMessage(
+                response.data?.message ||
+                    "✅ Delivery partner approved successfully."
+            );
+
+            await fetchUsers();
+            await fetchDashboardStats();
+            await fetchNotifications();
+        } catch (error) {
+            console.error(
+                "Approve delivery partner error:",
+                error
+            );
+
+            setMessage(
+                error.response?.data?.detail ||
+                    error.response?.data?.message ||
+                    error.response?.data?.error ||
+                    "Unable to approve delivery partner."
+            );
+        } finally {
+            setDeliveryPartnerActionId(null);
+        }
+    };
+
+    // ==========================================
+    // OPEN DELIVERY PARTNER REJECTION
+    // ==========================================
+
+    const handleOpenDeliveryPartnerReject = (partner) => {
+        setSelectedDeliveryPartner(partner);
+        setDeliveryPartnerRejectionReason(
+            partner.rejection_reason || ""
+        );
+        setDeliveryPartnerRejectOpen(true);
+        setMessage("");
+    };
+
+    // ==========================================
+    // REJECT DELIVERY PARTNER
+    // ==========================================
+
+    const handleRejectDeliveryPartner = async (event) => {
+        event.preventDefault();
+
+        if (!selectedDeliveryPartner) {
+            return;
+        }
+
+        const reason = deliveryPartnerRejectionReason.trim();
+
+        if (!reason) {
+            setMessage("Please enter a rejection reason.");
+            return;
+        }
+
+        try {
+            setDeliveryPartnerRejectLoading(true);
+            setDeliveryPartnerActionId(selectedDeliveryPartner.id);
+            setMessage("");
+
+            const response = await api.put(
+                `/api/auth/admin/delivery-partners/${selectedDeliveryPartner.id}/reject/`,
+                {
+                    rejection_reason: reason,
+                }
+            );
+
+            const updatedPartner =
+                response.data?.delivery_partner || null;
+
+            setDeliveryPartners((previous) =>
+                previous.map((item) =>
+                    item.id === selectedDeliveryPartner.id
+                        ? {
+                              ...item,
+                              ...(updatedPartner || {}),
+                              approval_status: "REJECTED",
+                              is_active: false,
+                              rejection_reason: reason,
+                          }
+                        : item
+                )
+            );
+
+            setSelectedDeliveryPartner((previous) =>
+                previous
+                    ? {
+                          ...previous,
+                          ...(updatedPartner || {}),
+                          approval_status: "REJECTED",
+                          is_active: false,
+                          rejection_reason: reason,
+                      }
+                    : previous
+            );
+
+            setStats((previous) => ({
+                ...previous,
+                active_delivery_partners: Math.max(
+                    previous.active_delivery_partners -
+                        (selectedDeliveryPartner.is_active ? 1 : 0),
+                    0
+                ),
+                inactive_delivery_partners:
+                    previous.inactive_delivery_partners +
+                    (selectedDeliveryPartner.is_active ? 1 : 0),
+            }));
+
+            setDeliveryPartnerRejectOpen(false);
+            setDeliveryPartnerRejectionReason("");
+
+            setMessage(
+                response.data?.message ||
+                    "❌ Delivery partner rejected successfully."
+            );
+
+            await fetchUsers();
+            await fetchDashboardStats();
+            await fetchNotifications();
+        } catch (error) {
+            console.error(
+                "Reject delivery partner error:",
+                error
+            );
+
+            setMessage(
+                error.response?.data?.detail ||
+                    error.response?.data?.message ||
+                    error.response?.data?.error ||
+                    error.response?.data?.rejection_reason?.[0] ||
+                    "Unable to reject delivery partner."
+            );
+        } finally {
+            setDeliveryPartnerRejectLoading(false);
+            setDeliveryPartnerActionId(null);
+        }
+    };
+
+    // ==========================================
+    // DELIVERY PARTNER FILTERING
+    // ==========================================
+
+    const filteredDeliveryPartners = deliveryPartners.filter((partner) => {
+        const search = deliveryPartnerSearch
+            .trim()
+            .toLowerCase();
+
+        const matchesSearch =
+            !search ||
+            [
+                partner.full_name,
+                partner.username,
+                partner.email,
+                partner.phone,
+                partner.vehicle_type,
+                partner.vehicle_number,
+                partner.driving_license_number,
+                partner.city,
+                partner.district,
+                partner.state,
+                String(partner.id),
+                String(partner.user_id),
+            ].some((value) =>
+                String(value || "")
+                    .toLowerCase()
+                    .includes(search)
+            );
+
+        const matchesFilter =
+            deliveryPartnerFilter === "ALL" ||
+            partner.approval_status === deliveryPartnerFilter;
+
+        return matchesSearch && matchesFilter;
+    });
+
+    // ==========================================
+    // DELIVERY PARTNER MANAGEMENT PAGE
+    // ==========================================
+
+    const renderDeliveryPartners = () => {
+        const pendingCount = deliveryPartners.filter(
+            (partner) => partner.approval_status === "PENDING"
+        ).length;
+        const approvedCount = deliveryPartners.filter(
+            (partner) => partner.approval_status === "APPROVED"
+        ).length;
+        const rejectedCount = deliveryPartners.filter(
+            (partner) => partner.approval_status === "REJECTED"
+        ).length;
+
+        return (
+            <>
+                <div className="admin-page-heading">
+                    <div>
+                        <span>
+                            DELIVERY OPERATIONS
+                        </span>
+
+                        <h1>
+                            🚚 Delivery Partner Management
+                        </h1>
+
+                        <p>
+                            Review delivery partner applications and manage approval status.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="admin-stats-grid">
+                    <StatCard
+                        icon="🚚"
+                        title="Total Partners"
+                        value={deliveryPartners.length}
+                    />
+                    <StatCard
+                        icon="⏳"
+                        title="Pending"
+                        value={pendingCount}
+                    />
+                    <StatCard
+                        icon="✅"
+                        title="Approved"
+                        value={approvedCount}
+                    />
+                    <StatCard
+                        icon="❌"
+                        title="Rejected"
+                        value={rejectedCount}
+                    />
+                </div>
+
+                <div className="admin-section">
+                    <div
+                        className="admin-section-header"
+                        style={{
+                            gap: "12px",
+                            flexWrap: "wrap",
+                        }}
+                    >
+                        <div>
+                            <span className="admin-section-label">
+                                DELIVERY PARTNER APPLICATIONS
+                            </span>
+
+                            <h2>
+                                {filteredDeliveryPartners.length} Partner(s)
+                            </h2>
+                        </div>
+
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: "10px",
+                                flexWrap: "wrap",
+                                alignItems: "center",
+                                width: "100%",
+                            }}
+                        >
+                            <input
+                                type="search"
+                                value={deliveryPartnerSearch}
+                                onChange={(event) =>
+                                    setDeliveryPartnerSearch(event.target.value)
+                                }
+                                placeholder="Search name, username, vehicle, phone or location..."
+                                style={{
+                                    flex: "1 1 300px",
+                                    minWidth: "220px",
+                                }}
+                            />
+
+                            <select
+                                value={deliveryPartnerFilter}
+                                onChange={(event) =>
+                                    setDeliveryPartnerFilter(event.target.value)
+                                }
+                                style={{
+                                    minWidth: "150px",
+                                }}
+                            >
+                                <option value="ALL">All Status</option>
+                                <option value="PENDING">Pending</option>
+                                <option value="APPROVED">Approved</option>
+                                <option value="REJECTED">Rejected</option>
+                            </select>
+
+                            <button
+                                type="button"
+                                className="admin-save-button"
+                                onClick={fetchDeliveryPartners}
+                                disabled={deliveryPartnersLoading}
+                            >
+                                {deliveryPartnersLoading
+                                    ? "Refreshing..."
+                                    : "↻ Refresh"}
+                            </button>
+                        </div>
+                    </div>
+
+                    {deliveryPartnersLoading ? (
+                        <div className="admin-empty-state">
+                            Loading delivery partner applications...
+                        </div>
+                    ) : deliveryPartners.length === 0 ? (
+                        <div className="admin-empty-state">
+                            No delivery partner applications found.
+                        </div>
+                    ) : filteredDeliveryPartners.length === 0 ? (
+                        <div className="admin-empty-state">
+                            No delivery partners match the selected search or filter.
+                        </div>
+                    ) : (
+                        <div className="admin-table-container">
+                            <table className="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Partner</th>
+                                        <th>Contact</th>
+                                        <th>Vehicle</th>
+                                        <th>Location</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {filteredDeliveryPartners.map((partner) => (
+                                        <tr key={partner.id}>
+                                            <td>
+                                                <strong>#{partner.id}</strong>
+                                                <br />
+                                                <small>
+                                                    User ID: {partner.user_id || "N/A"}
+                                                </small>
+                                            </td>
+
+                                            <td>
+                                                <strong>
+                                                    {partner.full_name || "N/A"}
+                                                </strong>
+                                                <br />
+                                                <small>
+                                                    @{partner.username || "N/A"}
+                                                </small>
+                                            </td>
+
+                                            <td>
+                                                {partner.phone || "N/A"}
+                                                <br />
+                                                <small>
+                                                    {partner.email || "N/A"}
+                                                </small>
+                                            </td>
+
+                                            <td>
+                                                <strong>
+                                                    {partner.vehicle_type || "N/A"}
+                                                </strong>
+                                                <br />
+                                                {partner.vehicle_number || "N/A"}
+                                            </td>
+
+                                            <td>
+                                                {partner.city || "N/A"}
+                                                <br />
+                                                {partner.district || "N/A"}
+                                                {partner.state
+                                                    ? `, ${partner.state}`
+                                                    : ""}
+                                                <br />
+                                                PIN: {partner.postal_code || "N/A"}
+                                            </td>
+
+                                            <td>
+                                                <span
+                                                    className="order-status-badge"
+                                                >
+                                                    {partner.approval_status || "PENDING"}
+                                                </span>
+                                                <br />
+                                                <small>
+                                                    {partner.is_active
+                                                        ? "Active account"
+                                                        : "Inactive account"}
+                                                </small>
+                                            </td>
+
+                                            <td>
+                                                <div
+                                                    style={{
+                                                        display: "flex",
+                                                        gap: "8px",
+                                                        flexWrap: "wrap",
+                                                    }}
+                                                >
+                                                    <button
+                                                        type="button"
+                                                        className="admin-edit-button"
+                                                        onClick={() =>
+                                                            setSelectedDeliveryPartner(partner)
+                                                        }
+                                                    >
+                                                        View
+                                                    </button>
+
+                                                    {partner.approval_status !== "APPROVED" && (
+                                                        <button
+                                                            type="button"
+                                                            className="admin-save-button"
+                                                            onClick={() =>
+                                                                handleApproveDeliveryPartner(partner)
+                                                            }
+                                                            disabled={
+                                                                deliveryPartnerActionId ===
+                                                                partner.id
+                                                            }
+                                                        >
+                                                            {deliveryPartnerActionId === partner.id
+                                                                ? "Updating..."
+                                                                : "Approve"}
+                                                        </button>
+                                                    )}
+
+                                                    {partner.approval_status !== "REJECTED" && (
+                                                        <button
+                                                            type="button"
+                                                            className="admin-delete-button"
+                                                            onClick={() =>
+                                                                handleOpenDeliveryPartnerReject(partner)
+                                                            }
+                                                            disabled={
+                                                                deliveryPartnerActionId ===
+                                                                partner.id
+                                                            }
+                                                        >
+                                                            Reject
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+
+                {selectedDeliveryPartner && !deliveryPartnerRejectOpen && (
+                    <div
+                        onClick={() => setSelectedDeliveryPartner(null)}
+                        style={{
+                            position: "fixed",
+                            inset: 0,
+                            zIndex: 1200,
+                            background: "rgba(0, 0, 0, 0.45)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: "24px",
+                            overflowY: "auto",
+                            boxSizing: "border-box",
+                        }}
+                    >
+                        <div
+                            onClick={(event) => event.stopPropagation()}
+                            style={{
+                                width: "100%",
+                                maxWidth: "700px",
+                                maxHeight: "88vh",
+                                overflowY: "auto",
+                                background: "#ffffff",
+                                borderRadius: "18px",
+                                padding: "28px",
+                                boxSizing: "border-box",
+                                boxShadow: "0 20px 60px rgba(0, 0, 0, 0.25)",
+                            }}
+                        >
+                            <div
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "flex-start",
+                                    gap: "16px",
+                                    marginBottom: "22px",
+                                }}
+                            >
+                                <div>
+                                    <span className="admin-section-label">
+                                        DELIVERY PARTNER DETAILS
+                                    </span>
+                                    <h2>
+                                        🚚 {selectedDeliveryPartner.full_name || "Delivery Partner"}
+                                    </h2>
+                                    <p>
+                                        @{selectedDeliveryPartner.username || "N/A"}
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    className="close-details-button"
+                                    onClick={() => setSelectedDeliveryPartner(null)}
+                                    aria-label="Close delivery partner details"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            <div
+                                style={{
+                                    display: "grid",
+                                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                                    gap: "14px",
+                                }}
+                            >
+                                {[
+                                    ["Email", selectedDeliveryPartner.email],
+                                    ["Phone", selectedDeliveryPartner.phone],
+                                    ["Vehicle Type", selectedDeliveryPartner.vehicle_type],
+                                    ["Vehicle Number", selectedDeliveryPartner.vehicle_number],
+                                    ["Driving Licence", selectedDeliveryPartner.driving_license_number],
+                                    ["Address", selectedDeliveryPartner.address_line1],
+                                    ["Address Line 2", selectedDeliveryPartner.address_line2],
+                                    ["City", selectedDeliveryPartner.city],
+                                    ["District", selectedDeliveryPartner.district],
+                                    ["State", selectedDeliveryPartner.state],
+                                    ["Postal Code", selectedDeliveryPartner.postal_code],
+                                    ["Approval Status", selectedDeliveryPartner.approval_status],
+                                    ["Account Status", selectedDeliveryPartner.is_active ? "ACTIVE" : "INACTIVE"],
+                                ].map(([label, value]) => (
+                                    <div
+                                        key={label}
+                                        style={{
+                                            padding: "14px",
+                                            borderRadius: "12px",
+                                            background: "#f7f7f7",
+                                        }}
+                                    >
+                                        <small style={{ display: "block", marginBottom: "5px", opacity: 0.7 }}>
+                                            {label}
+                                        </small>
+                                        <strong style={{ overflowWrap: "anywhere" }}>
+                                            {value || "N/A"}
+                                        </strong>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {selectedDeliveryPartner.rejection_reason && (
+                                <div
+                                    style={{
+                                        marginTop: "18px",
+                                        padding: "16px",
+                                        borderRadius: "12px",
+                                        background: "#fff4f4",
+                                    }}
+                                >
+                                    <strong>Rejection Reason</strong>
+                                    <p style={{ marginBottom: 0 }}>
+                                        {selectedDeliveryPartner.rejection_reason}
+                                    </p>
+                                </div>
+                            )}
+
+                            <div
+                                className="admin-form-actions"
+                                style={{ marginTop: "24px" }}
+                            >
+                                {selectedDeliveryPartner.approval_status !== "APPROVED" && (
+                                    <button
+                                        type="button"
+                                        className="admin-save-button"
+                                        onClick={() =>
+                                            handleApproveDeliveryPartner(selectedDeliveryPartner)
+                                        }
+                                        disabled={
+                                            deliveryPartnerActionId ===
+                                            selectedDeliveryPartner.id
+                                        }
+                                    >
+                                        {deliveryPartnerActionId === selectedDeliveryPartner.id
+                                            ? "Updating..."
+                                            : "✅ Approve Partner"}
+                                    </button>
+                                )}
+
+                                {selectedDeliveryPartner.approval_status !== "REJECTED" && (
+                                    <button
+                                        type="button"
+                                        className="admin-delete-button"
+                                        onClick={() =>
+                                            handleOpenDeliveryPartnerReject(selectedDeliveryPartner)
+                                        }
+                                        disabled={
+                                            deliveryPartnerActionId ===
+                                            selectedDeliveryPartner.id
+                                        }
+                                    >
+                                        ❌ Reject Partner
+                                    </button>
+                                )}
+
+                                <button
+                                    type="button"
+                                    className="admin-cancel-button"
+                                    onClick={() => setSelectedDeliveryPartner(null)}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {deliveryPartnerRejectOpen && selectedDeliveryPartner && (
+                    <div
+                        onClick={() => {
+                            if (!deliveryPartnerRejectLoading) {
+                                setDeliveryPartnerRejectOpen(false);
+                            }
+                        }}
+                        style={{
+                            position: "fixed",
+                            inset: 0,
+                            zIndex: 1300,
+                            background: "rgba(0, 0, 0, 0.5)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: "24px",
+                            boxSizing: "border-box",
+                        }}
+                    >
+                        <form
+                            onSubmit={handleRejectDeliveryPartner}
+                            onClick={(event) => event.stopPropagation()}
+                            style={{
+                                width: "100%",
+                                maxWidth: "520px",
+                                background: "#ffffff",
+                                borderRadius: "18px",
+                                padding: "28px",
+                                boxSizing: "border-box",
+                                boxShadow: "0 20px 60px rgba(0, 0, 0, 0.25)",
+                            }}
+                        >
+                            <span className="admin-section-label">
+                                APPLICATION REVIEW
+                            </span>
+                            <h2>
+                                ❌ Reject Delivery Partner
+                            </h2>
+                            <p>
+                                Enter a clear reason for rejecting <strong>{selectedDeliveryPartner.full_name || selectedDeliveryPartner.username}</strong>.
+                            </p>
+
+                            <div className="admin-form-group admin-full-width">
+                                <label htmlFor="delivery-partner-rejection-reason">
+                                    Rejection Reason
+                                </label>
+                                <textarea
+                                    id="delivery-partner-rejection-reason"
+                                    value={deliveryPartnerRejectionReason}
+                                    onChange={(event) =>
+                                        setDeliveryPartnerRejectionReason(event.target.value)
+                                    }
+                                    placeholder="Explain what information or documents need to be corrected..."
+                                    rows={5}
+                                    required
+                                    disabled={deliveryPartnerRejectLoading}
+                                    style={{
+                                        width: "100%",
+                                        resize: "vertical",
+                                        boxSizing: "border-box",
+                                    }}
+                                />
+                            </div>
+
+                            <div className="admin-form-actions" style={{ marginTop: "20px" }}>
+                                <button
+                                    type="submit"
+                                    className="admin-delete-button"
+                                    disabled={deliveryPartnerRejectLoading}
+                                >
+                                    {deliveryPartnerRejectLoading
+                                        ? "Rejecting..."
+                                        : "Reject Partner"}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className="admin-cancel-button"
+                                    onClick={() => setDeliveryPartnerRejectOpen(false)}
+                                    disabled={deliveryPartnerRejectLoading}
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                )}
+            </>
+        );
+    };
+
+    // ==========================================
+    // FETCH ORDERS
+    // ==========================================
+
+    const fetchFarmerProfiles = async () => {
+        try {
+            setFarmerVerificationLoading(true);
+
+            const response = await api.get(
+                "/api/farmers/admin/verification/"
+            );
+
+            const farmerData = extractList(
+                response.data,
+                ["farmers", "profiles", "data"]
+            );
+
+            setFarmerProfiles(farmerData);
+        } catch (error) {
+            console.error(
+                "Fetch farmer verification error:",
+                error
+            );
+
+            setFarmerProfiles([]);
+
+            setMessage(
+                error.response?.data?.detail ||
+                    error.response?.data?.message ||
+                    error.response?.data?.error ||
+                    "Unable to load farmer verification data."
+            );
+        } finally {
+            setFarmerVerificationLoading(false);
+        }
+    };
+
+    // ==========================================
+    // UPDATE FARMER VERIFICATION
+    // ==========================================
+
+    const handleFarmerVerification = async (farmerId, isVerified) => {
+        try {
+            setFarmerVerificationActionId(farmerId);
+            setMessage("");
+
+            const response = await api.put(
+                `/api/farmers/admin/verification/${farmerId}/`,
+                {
+                    is_verified: isVerified,
+                }
+            );
+
+            const updatedFarmer = response.data?.farmer;
+
+            setFarmerProfiles((previous) =>
+                previous.map((farmer) =>
+                    farmer.id === farmerId
+                        ? updatedFarmer || {
+                              ...farmer,
+                              is_verified: isVerified,
+                          }
+                        : farmer
+                )
+            );
+
+            setMessage(
+                response.data?.message ||
+                    (isVerified
+                        ? "Farmer verified successfully."
+                        : "Farmer verification rejected.")
+            );
+        } catch (error) {
+            console.error(
+                "Update farmer verification error:",
+                error
+            );
+
+            setMessage(
+                error.response?.data?.detail ||
+                    error.response?.data?.message ||
+                    error.response?.data?.error ||
+                    "Unable to update farmer verification."
+            );
+        } finally {
+            setFarmerVerificationActionId(null);
+        }
+    };
+
+    // ==========================================
+    // FARMER VERIFICATION FILTERING
+    // ==========================================
+
+    const filteredFarmerProfiles = farmerProfiles.filter((farmer) => {
+        const search = farmerVerificationSearch
+            .trim()
+            .toLowerCase();
+
+        const matchesSearch =
+            !search ||
+            String(farmer.farm_name || "")
+                .toLowerCase()
+                .includes(search) ||
+            String(farmer.phone || "")
+                .toLowerCase()
+                .includes(search) ||
+            String(farmer.village || "")
+                .toLowerCase()
+                .includes(search) ||
+            String(farmer.district || "")
+                .toLowerCase()
+                .includes(search) ||
+            String(farmer.state || "")
+                .toLowerCase()
+                .includes(search);
+
+        const matchesFilter =
+            farmerVerificationFilter === "ALL" ||
+            (farmerVerificationFilter === "PENDING" &&
+                !farmer.is_verified) ||
+            (farmerVerificationFilter === "VERIFIED" &&
+                farmer.is_verified);
+
+        return matchesSearch && matchesFilter;
+    });
+
+    // ==========================================
+    // FARMER VERIFICATION
+    // ==========================================
+
+    const renderFarmerVerification = () => {
+        return (
+            <>
+                <div className="admin-page-heading">
+                    <div>
+                        <span>
+                            TRUST &amp; SAFETY
+                        </span>
+
+                        <h1>
+                            🛡️ Farmer Verification
+                        </h1>
+
+                        <p>
+                            Review registered farmers and manage their verification status.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="admin-section">
+                    <div
+                        className="admin-section-header"
+                        style={{
+                            flexWrap: "wrap",
+                            gap: "16px",
+                        }}
+                    >
+                        <div>
+                            <span className="admin-section-label">
+                                FARMER KYC REVIEW
+                            </span>
+
+                            <h2>
+                                {farmerProfiles.length} Registered Farmers
+                            </h2>
+                        </div>
+
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: "10px",
+                                flexWrap: "wrap",
+                                alignItems: "center",
+                            }}
+                        >
+                            <input
+                                type="search"
+                                value={farmerVerificationSearch}
+                                onChange={(event) =>
+                                    setFarmerVerificationSearch(
+                                        event.target.value
+                                    )
+                                }
+                                placeholder="Search farmers..."
+                                style={{
+                                    minWidth: "220px",
+                                }}
+                            />
+
+                            <select
+                                value={farmerVerificationFilter}
+                                onChange={(event) =>
+                                    setFarmerVerificationFilter(
+                                        event.target.value
+                                    )
+                                }
+                            >
+                                <option value="ALL">All</option>
+                                <option value="PENDING">Pending</option>
+                                <option value="VERIFIED">Verified</option>
+                            </select>
+
+                            <button
+                                type="button"
+                                className="admin-save-button"
+                                onClick={fetchFarmerProfiles}
+                                disabled={farmerVerificationLoading}
+                            >
+                                {farmerVerificationLoading
+                                    ? "Refreshing..."
+                                    : "Refresh"}
+                            </button>
+                        </div>
+                    </div>
+
+                    {farmerVerificationLoading ? (
+                        <div className="admin-empty-state">
+                            Loading farmer verification records...
+                        </div>
+                    ) : filteredFarmerProfiles.length === 0 ? (
+                        <div className="admin-empty-state">
+                            No farmer verification records found.
+                        </div>
+                    ) : (
+                        <div className="admin-table-container">
+                            <table className="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Farm / Farmer</th>
+                                        <th>Contact</th>
+                                        <th>Location</th>
+                                        <th>Farm Details</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {filteredFarmerProfiles.map((farmer) => (
+                                        <tr key={farmer.id}>
+                                            <td>#{farmer.id}</td>
+
+                                            <td>
+                                                <strong>
+                                                    {farmer.farm_name || "N/A"}
+                                                </strong>
+                                                <br />
+                                                <small>
+                                                    User ID: {farmer.user || "N/A"}
+                                                </small>
+                                            </td>
+
+                                            <td>
+                                                {farmer.phone || "N/A"}
+                                            </td>
+
+                                            <td>
+                                                {farmer.village || "N/A"}
+                                                <br />
+                                                {farmer.district || "N/A"}
+                                                {farmer.state
+                                                    ? `, ${farmer.state}`
+                                                    : ""}
+                                                <br />
+                                                PIN: {farmer.pincode || "N/A"}
+                                            </td>
+
+                                            <td>
+                                                {farmer.farms?.length || 0} farm(s)
+                                            </td>
+
+                                            <td>
+                                                <span
+                                                    className="order-status-badge"
+                                                >
+                                                    {farmer.is_verified
+                                                        ? "VERIFIED"
+                                                        : "PENDING"}
+                                                </span>
+                                            </td>
+
+                                            <td>
+                                                <div
+                                                    style={{
+                                                        display: "flex",
+                                                        gap: "8px",
+                                                        flexWrap: "wrap",
+                                                    }}
+                                                >
+                                                    {farmer.is_verified ? (
+                                                        <button
+                                                            type="button"
+                                                            className="admin-delete-button"
+                                                            onClick={() =>
+                                                                handleFarmerVerification(
+                                                                    farmer.id,
+                                                                    false
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                farmerVerificationActionId ===
+                                                                farmer.id
+                                                            }
+                                                        >
+                                                            {farmerVerificationActionId ===
+                                                            farmer.id
+                                                                ? "Updating..."
+                                                                : "Reject"}
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            className="admin-save-button"
+                                                            onClick={() =>
+                                                                handleFarmerVerification(
+                                                                    farmer.id,
+                                                                    true
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                farmerVerificationActionId ===
+                                                                farmer.id
+                                                            }
+                                                        >
+                                                            {farmerVerificationActionId ===
+                                                            farmer.id
+                                                                ? "Updating..."
+                                                                : "Verify"}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            </>
+        );
     };
 
     // ==========================================
@@ -627,6 +1882,8 @@ function AdminDashboard({ onLogout }) {
                     fetchDashboardStats(),
                     fetchUsers(),
                     fetchProducts(),
+                    fetchDeliveryPartners(),
+                    fetchFarmerProfiles(),
                     fetchOrders(),
                     fetchPayments(),
                     fetchAdminProfile(),
@@ -667,6 +1924,170 @@ function AdminDashboard({ onLogout }) {
         setEditingProduct(null);
         setSelectedOrder(null);
         setSelectedOrderStatus("");
+        setSelectedDeliveryPartnerId("");
+
+        if (page !== "farmer-verification") {
+            setFarmerVerificationSearch("");
+            setFarmerVerificationFilter("ALL");
+        }
+
+        if (page !== "users") {
+            setUserSearch("");
+            setUserRoleFilter("ALL");
+            setUserStatusFilter("ALL");
+            setSelectedUser(null);
+        }
+
+        if (page !== "notifications") {
+            setNotificationSearch("");
+            setNotificationFilter("ALL");
+            setSelectedNotification(null);
+        }
+
+        if (page !== "delivery-partners") {
+            setDeliveryPartnerSearch("");
+            setDeliveryPartnerFilter("ALL");
+            setSelectedDeliveryPartner(null);
+            setDeliveryPartnerRejectOpen(false);
+            setDeliveryPartnerRejectionReason("");
+        }
+    };
+
+    // ==========================================
+    // FILTER USERS
+    // ==========================================
+
+    const filteredUsers = users.filter((user) => {
+        const search = userSearch.trim().toLowerCase();
+
+        const matchesSearch = !search || [
+            user.username,
+            user.email,
+            user.phone,
+            user.role,
+            String(user.id),
+        ].some((value) =>
+            String(value || "").toLowerCase().includes(search)
+        );
+
+        const matchesRole =
+            userRoleFilter === "ALL" ||
+            user.role === userRoleFilter;
+
+        const matchesStatus =
+            userStatusFilter === "ALL" ||
+            (userStatusFilter === "ACTIVE" && user.is_active === true) ||
+            (userStatusFilter === "INACTIVE" && user.is_active === false);
+
+        return matchesSearch && matchesRole && matchesStatus;
+    });
+
+    // ==========================================
+    // VIEW USER DETAILS
+    // ==========================================
+
+    const handleViewUser = async (user) => {
+        try {
+            setUserActionId(user.id);
+
+            const response = await api.get(
+                `/api/auth/admin/users/${user.id}/`
+            );
+
+            setSelectedUser(
+                response.data?.user || response.data || user
+            );
+        } catch (error) {
+            console.error("View user error:", error);
+            setMessage(
+                error.response?.data?.detail ||
+                    error.response?.data?.error ||
+                    "Unable to load user details."
+            );
+        } finally {
+            setUserActionId(null);
+        }
+    };
+
+    // ==========================================
+    // ACTIVATE / DEACTIVATE USER
+    // ==========================================
+
+    const handleToggleUserStatus = async (user) => {
+        const nextStatus = !user.is_active;
+
+        const confirmed = window.confirm(
+            `Are you sure you want to ${
+                nextStatus ? "activate" : "deactivate"
+            } user "${user.username}"?`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            setUserActionId(user.id);
+
+            const response = await api.put(
+                `/api/auth/admin/users/${user.id}/`,
+                { is_active: nextStatus }
+            );
+
+            const updatedUser =
+                response.data?.user || null;
+
+            setUsers((previous) =>
+                previous.map((item) =>
+                    item.id === user.id
+                        ? {
+                              ...item,
+                              ...(updatedUser || {}),
+                              is_active: nextStatus,
+                          }
+                        : item
+                )
+            );
+
+            if (selectedUser?.id === user.id) {
+                setSelectedUser((previous) => ({
+                    ...previous,
+                    ...(updatedUser || {}),
+                    is_active: nextStatus,
+                }));
+            }
+
+            setMessage(
+                `✅ User "${user.username}" ${
+                    nextStatus ? "activated" : "deactivated"
+                } successfully.`
+            );
+
+            if (user.role === "DELIVERY_PARTNER") {
+                setStats((previous) => ({
+                    ...previous,
+                    active_delivery_partners: nextStatus
+                        ? previous.active_delivery_partners + 1
+                        : Math.max(previous.active_delivery_partners - 1, 0),
+                    inactive_delivery_partners: nextStatus
+                        ? Math.max(previous.inactive_delivery_partners - 1, 0)
+                        : previous.inactive_delivery_partners + 1,
+                }));
+            }
+        } catch (error) {
+            console.error(
+                "Toggle user status error:",
+                error
+            );
+
+            setMessage(
+                error.response?.data?.detail ||
+                    error.response?.data?.error ||
+                    "Unable to update user status."
+            );
+        } finally {
+            setUserActionId(null);
+        }
     };
 
     // ==========================================
@@ -973,6 +2394,28 @@ function AdminDashboard({ onLogout }) {
 
             setSelectedOrder(orderData);
 
+            const existingPartner =
+                orderData?.delivery_partner ||
+                orderData?.assigned_delivery_partner ||
+                null;
+
+            const existingPartnerId =
+                orderData?.delivery_partner_id ||
+                existingPartner?.id ||
+                existingPartner?.user_id ||
+                "";
+
+            if (existingPartner) {
+                setOrderDeliveryAssignments((previous) => ({
+                    ...previous,
+                    [orderData.id]: existingPartner,
+                }));
+            }
+
+            setSelectedDeliveryPartnerId(
+                existingPartnerId ? String(existingPartnerId) : ""
+            );
+
             setSelectedOrderStatus(
                 orderData?.status || ""
             );
@@ -989,6 +2432,95 @@ function AdminDashboard({ onLogout }) {
             );
         } finally {
             setOrderDetailsLoading(false);
+        }
+    };
+
+    // ==========================================
+    // ASSIGN DELIVERY PARTNER TO ORDER
+    // ==========================================
+
+    const handleAssignDeliveryPartner = async () => {
+        if (!selectedOrder) {
+            return;
+        }
+
+        if (!selectedDeliveryPartnerId) {
+            setMessage("Please select a delivery partner.");
+            return;
+        }
+
+        const partner = deliveryPartners.find(
+            (item) => String(item.user_id) === String(selectedDeliveryPartnerId)
+        );
+
+        if (!partner) {
+            setMessage("Selected delivery partner was not found.");
+            return;
+        }
+
+        if (partner.approval_status !== "APPROVED" || partner.is_active !== true) {
+            setMessage("Only approved and active delivery partners can be assigned.");
+            return;
+        }
+
+        try {
+            setDeliveryAssignmentLoading(true);
+            setMessage("");
+
+            const response = await api.put(
+                `/api/orders/${selectedOrder.id}/assign-delivery/`,
+                {
+                    delivery_partner_id: Number(selectedDeliveryPartnerId),
+                }
+            );
+
+            const responseOrder =
+                response.data?.order ||
+                response.data?.updated_order ||
+                null;
+
+            const assignedPartner =
+                response.data?.delivery_partner ||
+                responseOrder?.delivery_partner ||
+                partner;
+
+            setOrderDeliveryAssignments((previous) => ({
+                ...previous,
+                [selectedOrder.id]: assignedPartner,
+            }));
+
+            setSelectedOrder((previousOrder) => ({
+                ...previousOrder,
+                ...(responseOrder || {}),
+                delivery_partner: assignedPartner,
+                delivery_partner_id:
+                    assignedPartner?.user_id ||
+                    assignedPartner?.id ||
+                    Number(selectedDeliveryPartnerId),
+            }));
+
+            setSelectedDeliveryPartnerId(String(partner.user_id));
+
+            setMessage(
+                response.data?.message ||
+                    `✅ Order #${selectedOrder.id} assigned to ${
+                        partner.full_name || partner.username || "delivery partner"
+                    } successfully.`
+            );
+
+            await fetchOrders();
+            await fetchNotifications();
+        } catch (error) {
+            console.error("Assign delivery partner error:", error);
+
+            setMessage(
+                error.response?.data?.detail ||
+                    error.response?.data?.message ||
+                    error.response?.data?.error ||
+                    "Unable to assign delivery partner to this order."
+            );
+        } finally {
+            setDeliveryAssignmentLoading(false);
         }
     };
 
@@ -1361,6 +2893,30 @@ function AdminDashboard({ onLogout }) {
                     />
 
                     <StatCard
+                        icon="🚚"
+                        title="Delivery Partners"
+                        value={
+                            stats.total_delivery_partners
+                        }
+                    />
+
+                    <StatCard
+                        icon="🟢"
+                        title="Active Delivery Partners"
+                        value={
+                            stats.active_delivery_partners
+                        }
+                    />
+
+                    <StatCard
+                        icon="⚪"
+                        title="Inactive Delivery Partners"
+                        value={
+                            stats.inactive_delivery_partners
+                        }
+                    />
+
+                    <StatCard
                         icon="🥕"
                         title="Total Products"
                         value={
@@ -1382,6 +2938,60 @@ function AdminDashboard({ onLogout }) {
                         value={
                             stats.total_payments
                         }
+                    />
+
+                    <StatCard
+                        icon="🟢"
+                        title="Active Users"
+                        value={
+                            stats.active_users
+                        }
+                    />
+
+                    <StatCard
+                        icon="✅"
+                        title="Verified Farmers"
+                        value={
+                            stats.verified_farmers
+                        }
+                    />
+
+                    <StatCard
+                        icon="⏳"
+                        title="Pending Farmers"
+                        value={
+                            stats.pending_farmers
+                        }
+                    />
+
+                    <StatCard
+                        icon="📋"
+                        title="Pending Orders"
+                        value={
+                            stats.pending_orders
+                        }
+                    />
+
+                    <StatCard
+                        icon="🚚"
+                        title="Delivered Orders"
+                        value={
+                            stats.delivered_orders
+                        }
+                    />
+
+                    <StatCard
+                        icon="💰"
+                        title="Successful Payments"
+                        value={
+                            stats.successful_payments
+                        }
+                    />
+
+                    <StatCard
+                        icon="₹"
+                        title="Total Revenue"
+                        value={`₹${Number(stats.total_revenue || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     />
                 </div>
 
@@ -1418,6 +3028,51 @@ function AdminDashboard({ onLogout }) {
                                 <small>
                                     Manage customers,
                                     farmers and users
+                                </small>
+                            </div>
+                        </button>
+
+                        <button
+                            type="button"
+                            className="admin-overview-card"
+                            onClick={() => {
+                                handleNavigation("users");
+                                setUserRoleFilter("DELIVERY_PARTNER");
+                            }}
+                        >
+                            <span>🚚</span>
+
+                            <div>
+                                <strong>
+                                    Delivery Partner Management
+                                </strong>
+
+                                <small>
+                                    {stats.total_delivery_partners} partner(s) •{" "}
+                                    {stats.active_delivery_partners} active •{" "}
+                                    {stats.inactive_delivery_partners} inactive
+                                </small>
+                            </div>
+                        </button>
+
+                        <button
+                            type="button"
+                            className="admin-overview-card"
+                            onClick={() =>
+                                handleNavigation(
+                                    "delivery-partners"
+                                )
+                            }
+                        >
+                            <span>📝</span>
+
+                            <div>
+                                <strong>
+                                    Delivery Applications
+                                </strong>
+
+                                <small>
+                                    Review pending delivery partner registrations
                                 </small>
                             </div>
                         </button>
@@ -1544,6 +3199,88 @@ function AdminDashboard({ onLogout }) {
                 </div>
 
                 <div className="admin-section">
+                    <div
+                        className="admin-section-header"
+                        style={{
+                            gap: "12px",
+                            flexWrap: "wrap",
+                        }}
+                    >
+                        <div>
+                            <span className="admin-section-label">
+                                USER DIRECTORY
+                            </span>
+
+                            <h2>
+                                {userRoleFilter === "DELIVERY_PARTNER"
+                                    ? `${stats.total_delivery_partners} Delivery Partners`
+                                    : "All Registered Users"}
+                            </h2>
+                        </div>
+
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: "10px",
+                                flexWrap: "wrap",
+                                alignItems: "center",
+                                width: "100%",
+                            }}
+                        >
+                            <input
+                                type="text"
+                                value={userSearch}
+                                onChange={(event) =>
+                                    setUserSearch(event.target.value)
+                                }
+                                placeholder="Search username, email, phone, role or ID..."
+                                style={{
+                                    flex: "1 1 280px",
+                                    minWidth: "220px",
+                                }}
+                            />
+
+                            <select
+                                value={userRoleFilter}
+                                onChange={(event) =>
+                                    setUserRoleFilter(event.target.value)
+                                }
+                                style={{
+                                    minWidth: "160px",
+                                }}
+                            >
+                                <option value="ALL">All Roles</option>
+                                <option value="CUSTOMER">Customer</option>
+                                <option value="FARMER">Farmer</option>
+                                <option value="DELIVERY_PARTNER">Delivery Partner</option>
+                                <option value="ADMIN">Admin</option>
+                            </select>
+
+                            <select
+                                value={userStatusFilter}
+                                onChange={(event) =>
+                                    setUserStatusFilter(event.target.value)
+                                }
+                                style={{
+                                    minWidth: "150px",
+                                }}
+                            >
+                                <option value="ALL">All Status</option>
+                                <option value="ACTIVE">Active</option>
+                                <option value="INACTIVE">Inactive</option>
+                            </select>
+
+                            <button
+                                type="button"
+                                className="admin-save-button"
+                                onClick={fetchUsers}
+                                disabled={usersLoading}
+                            >
+                                {usersLoading ? "Refreshing..." : "↻ Refresh"}
+                            </button>
+                        </div>
+                    </div>
+
                     {usersLoading ? (
                         <div className="admin-empty-state">
                             Loading users...
@@ -1552,112 +3289,235 @@ function AdminDashboard({ onLogout }) {
                         <div className="admin-empty-state">
                             No users found.
                         </div>
+                    ) : filteredUsers.length === 0 ? (
+                        <div className="admin-empty-state">
+                            No users match the selected search or filters.
+                        </div>
                     ) : (
                         <div className="admin-table-container">
                             <table className="admin-table">
                                 <thead>
                                     <tr>
                                         <th>ID</th>
-                                        <th>
-                                            Username
-                                        </th>
+                                        <th>Username</th>
                                         <th>Email</th>
                                         <th>Phone</th>
                                         <th>Role</th>
-                                        <th>
-                                            Action
-                                        </th>
+                                        <th>Status</th>
+                                        <th>Action</th>
                                     </tr>
                                 </thead>
 
                                 <tbody>
-                                    {users.map(
-                                        (user) => (
-                                            <tr
-                                                key={
-                                                    user.id
-                                                }
-                                            >
-                                                <td>
-                                                    {
-                                                        user.id
-                                                    }
-                                                </td>
+                                    {filteredUsers.map((user) => (
+                                        <tr key={user.id}>
+                                            <td>{user.id}</td>
 
-                                                <td>
-                                                    <strong>
-                                                        {
-                                                            user.username
+                                            <td>
+                                                <strong>
+                                                    {user.username}
+                                                </strong>
+                                            </td>
+
+                                            <td>
+                                                {user.email || "-"}
+                                            </td>
+
+                                            <td>
+                                                {user.phone || "-"}
+                                            </td>
+
+                                            <td>
+                                                <span className="role-badge">
+                                                    {user.role}
+                                                </span>
+                                            </td>
+
+                                            <td>
+                                                <span
+                                                    className="order-status-badge"
+                                                    style={{
+                                                        background: user.is_active
+                                                            ? "#e8f7ee"
+                                                            : "#fdecec",
+                                                        color: user.is_active
+                                                            ? "#218739"
+                                                            : "#c0392b",
+                                                    }}
+                                                >
+                                                    {user.is_active
+                                                        ? "ACTIVE"
+                                                        : "INACTIVE"}
+                                                </span>
+                                            </td>
+
+                                            <td>
+                                                <div
+                                                    className="admin-action-buttons"
+                                                    style={{
+                                                        flexWrap: "wrap",
+                                                    }}
+                                                >
+                                                    <button
+                                                        type="button"
+                                                        className="admin-edit-button"
+                                                        onClick={() =>
+                                                            handleViewUser(user)
                                                         }
-                                                    </strong>
-                                                </td>
-
-                                                <td>
-                                                    {
-                                                        user.email ||
-                                                        "-"
-                                                    }
-                                                </td>
-
-                                                <td>
-                                                    {
-                                                        user.phone ||
-                                                        "-"
-                                                    }
-                                                </td>
-
-                                                <td>
-                                                    <span className="role-badge">
-                                                        {
-                                                            user.role
+                                                        disabled={
+                                                            userActionId === user.id ||
+                                                            actionLoading
                                                         }
-                                                    </span>
-                                                </td>
+                                                    >
+                                                        View
+                                                    </button>
 
-                                                <td>
-                                                    <div className="admin-action-buttons">
-                                                        <button
-                                                            type="button"
-                                                            className="admin-edit-button"
-                                                            onClick={() =>
-                                                                handleEditClick(
-                                                                    user
-                                                                )
-                                                            }
-                                                            disabled={
-                                                                actionLoading
-                                                            }
-                                                        >
-                                                            Edit
-                                                        </button>
+                                                    <button
+                                                        type="button"
+                                                        className="admin-edit-button"
+                                                        onClick={() =>
+                                                            handleEditClick(user)
+                                                        }
+                                                        disabled={
+                                                            userActionId === user.id ||
+                                                            actionLoading
+                                                        }
+                                                    >
+                                                        Edit
+                                                    </button>
 
-                                                        <button
-                                                            type="button"
-                                                            className="admin-delete-button"
-                                                            onClick={() =>
-                                                                handleDeleteUser(
-                                                                    user
-                                                                )
-                                                            }
-                                                            disabled={
-                                                                actionLoading
-                                                            }
-                                                        >
-                                                            Delete
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )
-                                    )}
+                                                    <button
+                                                        type="button"
+                                                        className="admin-save-button"
+                                                        onClick={() =>
+                                                            handleToggleUserStatus(user)
+                                                        }
+                                                        disabled={
+                                                            userActionId === user.id ||
+                                                            actionLoading ||
+                                                            user.id === adminProfile?.id
+                                                        }
+                                                    >
+                                                        {user.is_active
+                                                            ? "Deactivate"
+                                                            : "Activate"}
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        className="admin-delete-button"
+                                                        onClick={() =>
+                                                            handleDeleteUser(user)
+                                                        }
+                                                        disabled={
+                                                            userActionId === user.id ||
+                                                            actionLoading
+                                                        }
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
                                 </tbody>
                             </table>
                         </div>
                     )}
                 </div>
 
-                {editingUser &&
-                    renderEditUser()}
+                {selectedUser && (
+                    <div className="admin-edit-section">
+                        <div className="admin-edit-header">
+                            <div>
+                                <span>
+                                    USER ACCOUNT
+                                </span>
+
+                                <h2>
+                                    👤 User Details
+                                </h2>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="admin-delete-button"
+                                onClick={() =>
+                                    setSelectedUser(null)
+                                }
+                            >
+                                Close
+                            </button>
+                        </div>
+
+                        <div
+                            className="admin-form-grid"
+                            style={{
+                                marginTop: "18px",
+                            }}
+                        >
+                            <div className="admin-form-group">
+                                <label>User ID</label>
+                                <input
+                                    type="text"
+                                    value={selectedUser.id ?? ""}
+                                    disabled
+                                />
+                            </div>
+
+                            <div className="admin-form-group">
+                                <label>Username</label>
+                                <input
+                                    type="text"
+                                    value={selectedUser.username || ""}
+                                    disabled
+                                />
+                            </div>
+
+                            <div className="admin-form-group">
+                                <label>Email</label>
+                                <input
+                                    type="text"
+                                    value={selectedUser.email || "-"}
+                                    disabled
+                                />
+                            </div>
+
+                            <div className="admin-form-group">
+                                <label>Phone</label>
+                                <input
+                                    type="text"
+                                    value={selectedUser.phone || "-"}
+                                    disabled
+                                />
+                            </div>
+
+                            <div className="admin-form-group">
+                                <label>Role</label>
+                                <input
+                                    type="text"
+                                    value={selectedUser.role || "-"}
+                                    disabled
+                                />
+                            </div>
+
+                            <div className="admin-form-group">
+                                <label>Account Status</label>
+                                <input
+                                    type="text"
+                                    value={
+                                        selectedUser.is_active
+                                            ? "Active"
+                                            : "Inactive"
+                                    }
+                                    disabled
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {editingUser && renderEditUser()}
             </>
         );
     };
@@ -2231,6 +4091,9 @@ function AdminDashboard({ onLogout }) {
                                             Status
                                         </th>
                                         <th>
+                                            Delivery Partner
+                                        </th>
+                                        <th>
                                             Created
                                         </th>
                                         <th>
@@ -2280,6 +4143,19 @@ function AdminDashboard({ onLogout }) {
                                                 </td>
 
                                                 <td>
+                                                    {(() => {
+                                                        const assigned =
+                                                            order.delivery_partner ||
+                                                            order.assigned_delivery_partner ||
+                                                            orderDeliveryAssignments[order.id];
+
+                                                        return assigned?.full_name ||
+                                                            assigned?.username ||
+                                                            (assigned?.id ? `Partner #${assigned.id}` : "Not Assigned");
+                                                    })()}
+                                                </td>
+
+                                                <td>
                                                     {order.created_at
                                                         ? new Date(
                                                               order.created_at
@@ -2321,230 +4197,283 @@ function AdminDashboard({ onLogout }) {
     };
 
     // ==========================================
-    // ORDER DETAILS
+    // ORDER DETAILS - POPUP MODAL
     // ==========================================
 
     const renderOrderDetails = () => {
+        if (!selectedOrder) {
+            return null;
+        }
+
         const orderItems =
             selectedOrder.items ||
             selectedOrder.order_items ||
             [];
 
+        const statusSteps = [
+            "PENDING",
+            "CONFIRMED",
+            "PROCESSING",
+            "SHIPPED",
+            "DELIVERED",
+        ];
+
+        const currentStatus = selectedOrder.status || "PENDING";
+        const currentStatusIndex = statusSteps.indexOf(currentStatus);
+
+        const closeOrderDetails = () => {
+            if (orderStatusLoading) {
+                return;
+            }
+
+            setSelectedOrder(null);
+            setSelectedOrderStatus("");
+            setSelectedDeliveryPartnerId("");
+            setMessage("");
+        };
+
         return (
-            <div className="admin-edit-section">
-                <div className="admin-edit-header">
-                    <div>
-                        <span>
-                            ORDER DETAILS
-                        </span>
-
-                        <h2>
-                            📋 Order #
-                            {selectedOrder.id}
-                        </h2>
-                    </div>
-                </div>
-
-                <div className="admin-order-summary">
-                    <p>
-                        <strong>
-                            Customer:
-                        </strong>{" "}
-                        {selectedOrder.customer_username ||
-                            selectedOrder.customer_name ||
-                            selectedOrder.customer
-                                ?.username ||
-                            selectedOrder.customer
-                                ?.email ||
-                            selectedOrder.customer ||
-                            "N/A"}
-                    </p>
-
-                    <p>
-                        <strong>
-                            Current Status:
-                        </strong>{" "}
-                        {selectedOrder.status ||
-                            "N/A"}
-                    </p>
-
-                    <p>
-                        <strong>
-                            Total Amount:
-                        </strong>{" "}
-                        ₹
-                        {selectedOrder.total_amount ??
-                            selectedOrder.total_price ??
-                            selectedOrder.total ??
-                            "0.00"}
-                    </p>
-
-                    <p>
-                        <strong>
-                            Created:
-                        </strong>{" "}
-                        {selectedOrder.created_at
-                            ? new Date(
-                                  selectedOrder.created_at
-                              ).toLocaleString()
-                            : "N/A"}
-                    </p>
-
-                    {selectedOrder.delivery_address_line1 && (
-                        <>
-                            <p>
-                                <strong>
-                                    Delivery Name:
-                                </strong>{" "}
-                                {selectedOrder.delivery_name ||
-                                    "N/A"}
-                            </p>
-
-                            <p>
-                                <strong>
-                                    Delivery Phone:
-                                </strong>{" "}
-                                {selectedOrder.delivery_phone ||
-                                    "N/A"}
-                            </p>
-
-                            <p>
-                                <strong>
-                                    Delivery Address:
-                                </strong>{" "}
-                                {
-                                    selectedOrder.delivery_address_line1
-                                }
-
-                                {selectedOrder.delivery_address_line2
-                                    ? `, ${selectedOrder.delivery_address_line2}`
-                                    : ""}
-
-                                {selectedOrder.delivery_city
-                                    ? `, ${selectedOrder.delivery_city}`
-                                    : ""}
-
-                                {selectedOrder.delivery_state
-                                    ? `, ${selectedOrder.delivery_state}`
-                                    : ""}
-
-                                {selectedOrder.delivery_postal_code
-                                    ? ` - ${selectedOrder.delivery_postal_code}`
-                                    : ""}
-
-                                {selectedOrder.delivery_country
-                                    ? `, ${selectedOrder.delivery_country}`
-                                    : ""}
-                            </p>
-                        </>
-                    )}
-                </div>
-
-                <div className="admin-order-status-section">
-                    <h3>
-                        🔄 Update Order Status
-                    </h3>
-
-                    <div className="admin-form-group">
-                        <label>
-                            Change Status
-                        </label>
-
-                        <select
-                            value={
-                                selectedOrderStatus
-                            }
-                            onChange={(event) =>
-                                setSelectedOrderStatus(
-                                    event.target.value
-                                )
-                            }
-                            disabled={
-                                orderStatusLoading
-                            }
-                        >
-                            <option value="">
-                                Select Status
-                            </option>
-
-                            <option value="PENDING">
-                                PENDING
-                            </option>
-
-                            <option value="CONFIRMED">
-                                CONFIRMED
-                            </option>
-
-                            <option value="PROCESSING">
-                                PROCESSING
-                            </option>
-
-                            <option value="SHIPPED">
-                                SHIPPED
-                            </option>
-
-                            <option value="DELIVERED">
-                                DELIVERED
-                            </option>
-
-                            <option value="CANCELLED">
-                                CANCELLED
-                            </option>
-                        </select>
-                    </div>
-
-                    <button
-                        type="button"
-                        className="admin-save-button"
-                        onClick={
-                            handleUpdateOrderStatus
-                        }
-                        disabled={
-                            orderStatusLoading ||
-                            !selectedOrderStatus ||
-                            selectedOrderStatus ===
-                                selectedOrder.status
-                        }
+            <div
+                className="customer-order-modal-overlay"
+                onClick={closeOrderDetails}
+                role="presentation"
+                style={{
+                    position: "fixed",
+                    inset: 0,
+                    zIndex: 9999,
+                    background: "rgba(0, 0, 0, 0.55)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "24px",
+                    overflowY: "auto",
+                    boxSizing: "border-box",
+                }}
+            >
+                <div
+                    className="order-details customer-order-modal"
+                    onClick={(event) => event.stopPropagation()}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="admin-order-details-title"
+                    style={{
+                        width: "100%",
+                        maxWidth: "900px",
+                        maxHeight: "92vh",
+                        overflowY: "auto",
+                        margin: "auto",
+                        position: "relative",
+                        background: "#ffffff",
+                        borderRadius: "18px",
+                        boxShadow: "0 20px 60px rgba(0, 0, 0, 0.25)",
+                        padding: "28px",
+                        boxSizing: "border-box",
+                    }}
+                >
+                    {/* MODAL HEADER */}
+                    <div
+                        className="order-details-header"
+                        style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            justifyContent: "space-between",
+                            gap: "20px",
+                            marginBottom: "22px",
+                        }}
                     >
-                        {orderStatusLoading
-                            ? "Updating..."
-                            : "Update Status"}
-                    </button>
-                </div>
+                        <div>
+                            <span className="customer-order-modal-label">
+                                ORDER DETAILS
+                            </span>
+                            <h2 id="admin-order-details-title">
+                                📦 Order #{selectedOrder.id}
+                            </h2>
+                        </div>
 
-                <h3 className="admin-subheading">
-                    🛒 Order Items
-                </h3>
+                        <button
+                            type="button"
+                            className="close-details-button"
+                            onClick={closeOrderDetails}
+                            disabled={orderStatusLoading}
+                            aria-label="Close order details"
+                        >
+                            ✕
+                        </button>
+                    </div>
 
-                {orderItems.length > 0 ? (
-                    <div className="admin-table-container">
-                        <table className="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>
-                                        Product
-                                    </th>
+                    {/* BASIC ORDER INFORMATION */}
+                    <div
+                        className="admin-order-summary"
+                        style={{
+                            marginBottom: "24px",
+                        }}
+                    >
+                        <p>
+                            <strong>Customer:</strong>{" "}
+                            {selectedOrder.customer_username ||
+                                selectedOrder.customer_name ||
+                                selectedOrder.customer?.username ||
+                                selectedOrder.customer?.email ||
+                                selectedOrder.customer ||
+                                "N/A"}
+                        </p>
 
-                                    <th>
-                                        Quantity
-                                    </th>
+                        <p>
+                            <strong>Status:</strong>{" "}
+                            <span className="order-status-badge">
+                                {currentStatus}
+                            </span>
+                        </p>
 
-                                    <th>
-                                        Price/kg
-                                    </th>
+                        <p>
+                            <strong>Total Amount:</strong>{" "}
+                            ₹
+                            {selectedOrder.total_amount ??
+                                selectedOrder.total_price ??
+                                selectedOrder.total ??
+                                "0.00"}
+                        </p>
 
-                                    <th>
-                                        Subtotal
-                                    </th>
-                                </tr>
-                            </thead>
+                        <p>
+                            <strong>Created:</strong>{" "}
+                            {selectedOrder.created_at
+                                ? new Date(
+                                      selectedOrder.created_at
+                                  ).toLocaleString()
+                                : "N/A"}
+                        </p>
+                    </div>
 
-                            <tbody>
-                                {orderItems.map(
-                                    (
-                                        item,
-                                        index
-                                    ) => (
+                    {/* ORDER TRACKING */}
+                    <div
+                        className="order-timeline"
+                        style={{
+                            marginBottom: "26px",
+                        }}
+                    >
+                        <h3>📦 Order Tracking</h3>
+
+                        {statusSteps.map((step, index) => {
+                            const completed =
+                                currentStatus !== "CANCELLED" &&
+                                currentStatusIndex >= index;
+
+                            return (
+                                <div
+                                    className={`timeline-step ${
+                                        completed
+                                            ? "timeline-completed"
+                                            : ""
+                                    }`}
+                                    key={step}
+                                >
+                                    <div className="timeline-icon">
+                                        {completed ? "✓" : "○"}
+                                    </div>
+
+                                    <div className="timeline-content">
+                                        <strong>{step}</strong>
+
+                                        {index < statusSteps.length - 1 && (
+                                            <div className="timeline-line"></div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+
+                        {currentStatus === "CANCELLED" && (
+                            <div className="timeline-cancelled">
+                                <div className="timeline-icon">✕</div>
+                                <div className="timeline-content">
+                                    <strong>ORDER CANCELLED</strong>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* DELIVERY ADDRESS */}
+                    <div
+                        className="order-delivery-address"
+                        style={{
+                            marginBottom: "26px",
+                        }}
+                    >
+                        <div className="delivery-address-header">
+                            <div className="delivery-address-icon">📍</div>
+                            <div>
+                                <h3>Delivery Address</h3>
+                                <p>Address used for this order</p>
+                            </div>
+                        </div>
+
+                        {selectedOrder.delivery_address_line1 ? (
+                            <div className="delivery-address-content">
+                                <div className="delivery-address-name-row">
+                                    <strong>
+                                        {selectedOrder.delivery_name || "N/A"}
+                                    </strong>
+                                    <span>
+                                        {selectedOrder.delivery_phone || "N/A"}
+                                    </span>
+                                </div>
+
+                                <p>
+                                    {selectedOrder.delivery_address_line1}
+                                </p>
+
+                                {selectedOrder.delivery_address_line2 && (
+                                    <p>
+                                        {selectedOrder.delivery_address_line2}
+                                    </p>
+                                )}
+
+                                <p>
+                                    {selectedOrder.delivery_city || ""}
+                                    {selectedOrder.delivery_city &&
+                                    selectedOrder.delivery_state
+                                        ? ", "
+                                        : ""}
+                                    {selectedOrder.delivery_state || ""}
+                                    {selectedOrder.delivery_postal_code
+                                        ? ` - ${selectedOrder.delivery_postal_code}`
+                                        : ""}
+                                </p>
+
+                                {selectedOrder.delivery_country && (
+                                    <p>
+                                        {selectedOrder.delivery_country}
+                                    </p>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="delivery-address-unavailable">
+                                <span>⚠️</span>
+                                <p>
+                                    Delivery address information is not
+                                    available for this order.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* PRODUCTS */}
+                    <h3 className="admin-subheading">🛒 Products</h3>
+
+                    {orderItems.length > 0 ? (
+                        <div className="admin-table-container">
+                            <table className="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Quantity</th>
+                                        <th>Price/kg</th>
+                                        <th>Subtotal</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {orderItems.map((item, index) => (
                                         <tr
                                             key={
                                                 item.id ||
@@ -2553,24 +4482,19 @@ function AdminDashboard({ onLogout }) {
                                         >
                                             <td>
                                                 {item.product_name ||
-                                                    item.product
-                                                        ?.name ||
+                                                    item.product?.name ||
                                                     item.product ||
                                                     "N/A"}
                                             </td>
-
                                             <td>
-                                                {item.quantity ??
-                                                    "N/A"}
+                                                {item.quantity ?? "N/A"}
                                             </td>
-
                                             <td>
                                                 ₹
                                                 {item.price_per_kg ??
                                                     item.price ??
                                                     "0.00"}
                                             </td>
-
                                             <td>
                                                 ₹
                                                 {item.subtotal ??
@@ -2579,37 +4503,197 @@ function AdminDashboard({ onLogout }) {
                                                     "0.00"}
                                             </td>
                                         </tr>
-                                    )
-                                )}
-                            </tbody>
-                        </table>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <p>No items found.</p>
+                    )}
+
+                    {/* DELIVERY PARTNER ASSIGNMENT */}
+                    <div
+                        className="admin-order-status-section"
+                        style={{
+                            marginTop: "26px",
+                            padding: "20px",
+                            borderRadius: "14px",
+                            background: "#f7faf8",
+                            border: "1px solid #e1ebe4",
+                        }}
+                    >
+                        <h3>🚚 Assign Delivery Partner</h3>
+
+                        <p style={{ marginTop: "6px", marginBottom: "16px" }}>
+                            Select an approved and active delivery partner for this order.
+                        </p>
+
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: "12px",
+                                alignItems: "flex-end",
+                                flexWrap: "wrap",
+                            }}
+                        >
+                            <div
+                                className="admin-form-group"
+                                style={{ flex: "1 1 280px", marginBottom: 0 }}
+                            >
+                                <label htmlFor="admin-delivery-partner-select">
+                                    Delivery Partner
+                                </label>
+
+                                <select
+                                    id="admin-delivery-partner-select"
+                                    value={selectedDeliveryPartnerId}
+                                    onChange={(event) =>
+                                        setSelectedDeliveryPartnerId(event.target.value)
+                                    }
+                                    disabled={deliveryAssignmentLoading}
+                                >
+                                    <option value="">
+                                        Select Delivery Partner
+                                    </option>
+
+                                    {deliveryPartners
+                                        .filter(
+                                            (partner) =>
+                                                partner.approval_status === "APPROVED" &&
+                                                partner.is_active === true
+                                        )
+                                        .map((partner) => (
+                                            <option
+                                                key={partner.user_id || partner.id}
+                                                value={partner.user_id || partner.id}
+                                            >
+                                                {partner.full_name || partner.username || `Partner #${partner.id}`}
+                                                {partner.vehicle_number
+                                                    ? ` • ${partner.vehicle_number}`
+                                                    : ""}
+                                            </option>
+                                        ))}
+                                </select>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="admin-save-button"
+                                onClick={handleAssignDeliveryPartner}
+                                disabled={
+                                    deliveryAssignmentLoading ||
+                                    !selectedDeliveryPartnerId
+                                }
+                            >
+                                {deliveryAssignmentLoading
+                                    ? "Assigning..."
+                                    : "🚚 Assign Partner"}
+                            </button>
+                        </div>
+
+                        {(() => {
+                            const assigned =
+                                selectedOrder.delivery_partner ||
+                                selectedOrder.assigned_delivery_partner ||
+                                orderDeliveryAssignments[selectedOrder.id];
+
+                            return assigned ? (
+                                <div
+                                    style={{
+                                        marginTop: "16px",
+                                        padding: "12px 14px",
+                                        borderRadius: "10px",
+                                        background: "#eef8f1",
+                                    }}
+                                >
+                                    <strong>Currently Assigned:</strong>{" "}
+                                    {assigned.full_name ||
+                                        assigned.username ||
+                                        `Partner #${assigned.user_id || assigned.id || selectedDeliveryPartnerId}`}
+                                    {assigned.vehicle_number
+                                        ? ` • ${assigned.vehicle_number}`
+                                        : ""}
+                                </div>
+                            ) : (
+                                <div
+                                    style={{
+                                        marginTop: "16px",
+                                        fontSize: "14px",
+                                        opacity: 0.75,
+                                    }}
+                                >
+                                    No delivery partner assigned yet.
+                                </div>
+                            );
+                        })()}
                     </div>
-                ) : (
-                    <p>
-                        No items found.
-                    </p>
-                )}
 
-                <button
-                    type="button"
-                    className="admin-cancel-button"
-                    onClick={() => {
-                        setSelectedOrder(
-                            null
-                        );
+                    {/* ADMIN STATUS UPDATE */}
+                    <div
+                        className="admin-order-status-section"
+                        style={{
+                            marginTop: "26px",
+                        }}
+                    >
+                        <h3>🔄 Update Order Status</h3>
 
-                        setSelectedOrderStatus(
-                            ""
-                        );
+                        <div className="admin-form-group">
+                            <label>Change Status</label>
 
-                        setMessage("");
-                    }}
-                    disabled={
-                        orderStatusLoading
-                    }
-                >
-                    Close
-                </button>
+                            <select
+                                value={selectedOrderStatus}
+                                onChange={(event) =>
+                                    setSelectedOrderStatus(
+                                        event.target.value
+                                    )
+                                }
+                                disabled={orderStatusLoading}
+                            >
+                                <option value="">
+                                    Select Status
+                                </option>
+                                <option value="PENDING">PENDING</option>
+                                <option value="CONFIRMED">CONFIRMED</option>
+                                <option value="PROCESSING">PROCESSING</option>
+                                <option value="SHIPPED">SHIPPED</option>
+                                <option value="DELIVERED">DELIVERED</option>
+                                <option value="CANCELLED">CANCELLED</option>
+                            </select>
+                        </div>
+
+                        <button
+                            type="button"
+                            className="admin-save-button"
+                            onClick={handleUpdateOrderStatus}
+                            disabled={
+                                orderStatusLoading ||
+                                !selectedOrderStatus ||
+                                selectedOrderStatus === selectedOrder.status
+                            }
+                        >
+                            {orderStatusLoading
+                                ? "Updating..."
+                                : "Update Status"}
+                        </button>
+                    </div>
+
+                    <div
+                        style={{
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            marginTop: "24px",
+                        }}
+                    >
+                        <button
+                            type="button"
+                            className="admin-cancel-button"
+                            onClick={closeOrderDetails}
+                            disabled={orderStatusLoading}
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
             </div>
         );
     };
@@ -2746,6 +4830,52 @@ function AdminDashboard({ onLogout }) {
     };
 
     // ==========================================
+    // NOTIFICATIONS FILTERING
+    // ==========================================
+
+    const filteredNotifications = notifications.filter((notification) => {
+        const search = notificationSearch.trim().toLowerCase();
+
+        const title =
+            notification.title ||
+            notification.notification_type ||
+            "Notification";
+
+        const messageText =
+            notification.message ||
+            notification.text ||
+            notification.description ||
+            "";
+
+        const recipient =
+            notification.username ||
+            notification.user_username ||
+            notification.recipient_username ||
+            notification.user?.username ||
+            "";
+
+        const matchesSearch =
+            !search ||
+            String(title).toLowerCase().includes(search) ||
+            String(messageText).toLowerCase().includes(search) ||
+            String(recipient).toLowerCase().includes(search) ||
+            String(notification.notification_type || "")
+                .toLowerCase()
+                .includes(search);
+
+        const isRead =
+            notification.is_read === true ||
+            notification.is_read === 1;
+
+        const matchesFilter =
+            notificationFilter === "ALL" ||
+            (notificationFilter === "READ" && isRead) ||
+            (notificationFilter === "UNREAD" && !isRead);
+
+        return matchesSearch && matchesFilter;
+    });
+
+    // ==========================================
     // NOTIFICATIONS PAGE
     // ==========================================
 
@@ -2763,54 +4893,90 @@ function AdminDashboard({ onLogout }) {
                         </h1>
 
                         <p>
-                            View marketplace alerts and
-                            account notifications.
+                            View marketplace alerts and account notifications.
                         </p>
                     </div>
                 </div>
 
                 <div className="admin-section">
-                    <div className="admin-section-header">
+                    <div
+                        className="admin-section-header"
+                        style={{
+                            flexWrap: "wrap",
+                            gap: "16px",
+                        }}
+                    >
                         <div>
                             <span className="admin-section-label">
                                 NOTIFICATION CENTER
                             </span>
 
                             <h2>
-                                {
-                                    unreadNotifications
-                                }{" "}
-                                Unread
+                                {unreadNotifications} Unread
                             </h2>
                         </div>
 
-                        {notifications.length >
-                            0 &&
-                            unreadNotifications >
-                                0 && (
-                                <button
-                                    type="button"
-                                    className="admin-save-button"
-                                    onClick={
-                                        handleMarkAllNotificationsRead
-                                    }
-                                    disabled={
-                                        actionLoading
-                                    }
-                                >
-                                    {actionLoading
-                                        ? "Updating..."
-                                        : "Mark All as Read"}
-                                </button>
-                            )}
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: "10px",
+                                flexWrap: "wrap",
+                                alignItems: "center",
+                            }}
+                        >
+                            <input
+                                type="search"
+                                value={notificationSearch}
+                                onChange={(event) =>
+                                    setNotificationSearch(event.target.value)
+                                }
+                                placeholder="Search notifications..."
+                                style={{ minWidth: "230px" }}
+                            />
+
+                            <select
+                                value={notificationFilter}
+                                onChange={(event) =>
+                                    setNotificationFilter(event.target.value)
+                                }
+                            >
+                                <option value="ALL">All</option>
+                                <option value="UNREAD">Unread</option>
+                                <option value="READ">Read</option>
+                            </select>
+
+                            <button
+                                type="button"
+                                className="admin-save-button"
+                                onClick={fetchNotifications}
+                                disabled={notificationsLoading}
+                            >
+                                {notificationsLoading
+                                    ? "Refreshing..."
+                                    : "Refresh"}
+                            </button>
+
+                            {notifications.length > 0 &&
+                                unreadNotifications > 0 && (
+                                    <button
+                                        type="button"
+                                        className="admin-save-button"
+                                        onClick={handleMarkAllNotificationsRead}
+                                        disabled={actionLoading}
+                                    >
+                                        {actionLoading
+                                            ? "Updating..."
+                                            : "Mark All as Read"}
+                                    </button>
+                                )}
+                        </div>
                     </div>
 
                     {notificationsLoading ? (
                         <div className="admin-empty-state">
                             Loading notifications...
                         </div>
-                    ) : notifications.length ===
-                      0 ? (
+                    ) : filteredNotifications.length === 0 ? (
                         <div className="admin-empty-state">
                             No notifications found.
                         </div>
@@ -2819,85 +4985,94 @@ function AdminDashboard({ onLogout }) {
                             <table className="admin-table">
                                 <thead>
                                     <tr>
-                                        <th>
-                                            Notification
-                                        </th>
-
-                                        <th>
-                                            Message
-                                        </th>
-
-                                        <th>
-                                            Status
-                                        </th>
-
-                                        <th>
-                                            Date
-                                        </th>
-
-                                        <th>
-                                            Action
-                                        </th>
+                                        <th>Notification</th>
+                                        <th>Message</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                        <th>Action</th>
                                     </tr>
                                 </thead>
 
                                 <tbody>
-                                    {notifications.map(
-                                        (
-                                            notification
-                                        ) => {
-                                            const isRead =
-                                                notification.is_read ===
-                                                    true ||
-                                                notification.is_read ===
-                                                    1;
+                                    {filteredNotifications.map((notification) => {
+                                        const isRead =
+                                            notification.is_read === true ||
+                                            notification.is_read === 1;
 
-                                            return (
-                                                <tr
-                                                    key={
-                                                        notification.id
-                                                    }
-                                                >
-                                                    <td>
-                                                        <strong>
-                                                            {notification.title ||
-                                                                notification.notification_type ||
-                                                                "Notification"}
-                                                        </strong>
-                                                    </td>
+                                        return (
+                                            <tr key={notification.id}>
+                                                <td>
+                                                    <strong>
+                                                        {notification.title ||
+                                                            notification.notification_type ||
+                                                            "Notification"}
+                                                    </strong>
+                                                </td>
 
-                                                    <td>
+                                                <td>
+                                                    <div
+                                                        style={{
+                                                            maxWidth: "360px",
+                                                            whiteSpace: "nowrap",
+                                                            overflow: "hidden",
+                                                            textOverflow: "ellipsis",
+                                                        }}
+                                                        title={
+                                                            notification.message ||
+                                                            notification.text ||
+                                                            notification.description ||
+                                                            "-"
+                                                        }
+                                                    >
                                                         {notification.message ||
                                                             notification.text ||
                                                             notification.description ||
                                                             "-"}
-                                                    </td>
+                                                    </div>
+                                                </td>
 
-                                                    <td>
-                                                        <span className="role-badge">
-                                                            {isRead
-                                                                ? "READ"
-                                                                : "UNREAD"}
-                                                        </span>
-                                                    </td>
+                                                <td>
+                                                    <span className="role-badge">
+                                                        {isRead ? "READ" : "UNREAD"}
+                                                    </span>
+                                                </td>
 
-                                                    <td>
-                                                        {notification.created_at
-                                                            ? new Date(
-                                                                  notification.created_at
-                                                              ).toLocaleString()
-                                                            : notification.timestamp
-                                                            ? new Date(
-                                                                  notification.timestamp
-                                                              ).toLocaleString()
-                                                            : "N/A"}
-                                                    </td>
+                                                <td>
+                                                    {notification.created_at
+                                                        ? new Date(
+                                                              notification.created_at
+                                                          ).toLocaleString()
+                                                        : notification.timestamp
+                                                        ? new Date(
+                                                              notification.timestamp
+                                                          ).toLocaleString()
+                                                        : "N/A"}
+                                                </td>
 
-                                                    <td>
+                                                <td>
+                                                    <div
+                                                        style={{
+                                                            display: "flex",
+                                                            gap: "8px",
+                                                            flexWrap: "wrap",
+                                                        }}
+                                                    >
+                                                        <button
+                                                            type="button"
+                                                            className="admin-edit-button"
+                                                            onClick={() =>
+                                                                setSelectedNotification(
+                                                                    notification
+                                                                )
+                                                            }
+                                                        >
+                                                            View
+                                                        </button>
+
                                                         {!isRead ? (
                                                             <button
                                                                 type="button"
-                                                                className="admin-edit-button"
+                                                                className="admin-save-button"
                                                                 onClick={() =>
                                                                     handleMarkNotificationRead(
                                                                         notification.id
@@ -2907,20 +5082,185 @@ function AdminDashboard({ onLogout }) {
                                                                 Mark Read
                                                             </button>
                                                         ) : (
-                                                            <span>
-                                                                ✅ Read
-                                                            </span>
+                                                            <span>✅ Read</span>
                                                         )}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        }
-                                    )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
                     )}
                 </div>
+
+                {selectedNotification && (
+                    <div
+                        onClick={() => setSelectedNotification(null)}
+                        role="presentation"
+                        style={{
+                            position: "fixed",
+                            inset: 0,
+                            zIndex: 10000,
+                            background: "rgba(0, 0, 0, 0.55)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: "24px",
+                            overflowY: "auto",
+                            boxSizing: "border-box",
+                        }}
+                    >
+                        <div
+                            onClick={(event) => event.stopPropagation()}
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="admin-notification-details-title"
+                            style={{
+                                width: "100%",
+                                maxWidth: "650px",
+                                maxHeight: "85vh",
+                                overflowY: "auto",
+                                background: "#ffffff",
+                                borderRadius: "18px",
+                                padding: "28px",
+                                boxSizing: "border-box",
+                                boxShadow: "0 20px 60px rgba(0, 0, 0, 0.25)",
+                            }}
+                        >
+                            <div
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "flex-start",
+                                    gap: "16px",
+                                    marginBottom: "22px",
+                                }}
+                            >
+                                <div>
+                                    <span className="admin-section-label">
+                                        NOTIFICATION DETAILS
+                                    </span>
+                                    <h2 id="admin-notification-details-title">
+                                        🔔 {selectedNotification.title ||
+                                            selectedNotification.notification_type ||
+                                            "Notification"}
+                                    </h2>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    className="close-details-button"
+                                    onClick={() =>
+                                        setSelectedNotification(null)
+                                    }
+                                    aria-label="Close notification details"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            <div className="admin-order-summary">
+                                <p>
+                                    <strong>Type:</strong>{" "}
+                                    {selectedNotification.notification_type || "N/A"}
+                                </p>
+
+                                <p>
+                                    <strong>Status:</strong>{" "}
+                                    {selectedNotification.is_read === true ||
+                                    selectedNotification.is_read === 1
+                                        ? "READ"
+                                        : "UNREAD"}
+                                </p>
+
+                                <p>
+                                    <strong>Date:</strong>{" "}
+                                    {selectedNotification.created_at
+                                        ? new Date(
+                                              selectedNotification.created_at
+                                          ).toLocaleString()
+                                        : selectedNotification.timestamp
+                                        ? new Date(
+                                              selectedNotification.timestamp
+                                          ).toLocaleString()
+                                        : "N/A"}
+                                </p>
+
+                                <p>
+                                    <strong>Recipient:</strong>{" "}
+                                    {selectedNotification.username ||
+                                        selectedNotification.user_username ||
+                                        selectedNotification.recipient_username ||
+                                        selectedNotification.user?.username ||
+                                        "N/A"}
+                                </p>
+                            </div>
+
+                            <div
+                                style={{
+                                    marginTop: "22px",
+                                    padding: "18px",
+                                    borderRadius: "12px",
+                                    background: "#f7f7f7",
+                                    lineHeight: 1.7,
+                                    whiteSpace: "pre-wrap",
+                                    overflowWrap: "anywhere",
+                                }}
+                            >
+                                {selectedNotification.message ||
+                                    selectedNotification.text ||
+                                    selectedNotification.description ||
+                                    "No notification message available."}
+                            </div>
+
+                            <div
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "flex-end",
+                                    gap: "10px",
+                                    marginTop: "24px",
+                                }}
+                            >
+                                {!(
+                                    selectedNotification.is_read === true ||
+                                    selectedNotification.is_read === 1
+                                ) && (
+                                    <button
+                                        type="button"
+                                        className="admin-save-button"
+                                        onClick={async () => {
+                                            await handleMarkNotificationRead(
+                                                selectedNotification.id
+                                            );
+                                            setSelectedNotification((previous) =>
+                                                previous
+                                                    ? {
+                                                          ...previous,
+                                                          is_read: true,
+                                                      }
+                                                    : previous
+                                            );
+                                        }}
+                                    >
+                                        Mark as Read
+                                    </button>
+                                )}
+
+                                <button
+                                    type="button"
+                                    className="admin-cancel-button"
+                                    onClick={() =>
+                                        setSelectedNotification(null)
+                                    }
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </>
         );
     };
@@ -3530,6 +5870,14 @@ function AdminDashboard({ onLogout }) {
                 {activePage ===
                     "products" &&
                     renderProducts()}
+
+                {activePage ===
+                    "delivery-partners" &&
+                    renderDeliveryPartners()}
+
+                {activePage ===
+                    "farmer-verification" &&
+                    renderFarmerVerification()}
 
                 {activePage ===
                     "orders" &&

@@ -8,15 +8,17 @@ import AdminDashboard from "./components/AdminDashboard";
 import CustomerCart from "./components/CustomerCart";
 import CustomerNotifications from "./components/CustomerNotifications";
 import CustomerDashboard from "./components/CustomerDashboard";
+import DeliveryPartnerDashboard from "./components/DeliveryPartnerDashboard";
+import DeliveryPartnerRegistration from "./components/DeliveryPartnerRegistration";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
 const RAZORPAY_KEY_ID = "rzp_test_Tb9K0WydM5EmRH";
 
 function App() {
-  // --------------------------------
+  // ==========================================
   // LOGIN STATES
-  // --------------------------------
+  // ==========================================
 
   const [username, setUsername] = useState("api_customer1");
 
@@ -30,11 +32,14 @@ function App() {
     localStorage.getItem("user_role") || ""
   );
 
-  // --------------------------------
+  // ==========================================
   // REGISTER / LOGIN SCREEN STATE
-  // --------------------------------
+  // ==========================================
 
   const [showRegister, setShowRegister] = useState(false);
+
+  const [showDeliveryPartnerRegister, setShowDeliveryPartnerRegister] =
+    useState(false);
 
   const [registerUsername, setRegisterUsername] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
@@ -50,9 +55,9 @@ function App() {
   const [farmState, setFarmState] = useState("");
   const [farmPincode, setFarmPincode] = useState("");
 
-  // --------------------------------
+  // ==========================================
   // PAYMENT STATES
-  // --------------------------------
+  // ==========================================
 
   const [orderId] = useState(5);
 
@@ -60,9 +65,9 @@ function App() {
 
   const [loading, setLoading] = useState(false);
 
-  // --------------------------------
+  // ==========================================
   // LOGIN
-  // --------------------------------
+  // ==========================================
 
   const handleLogin = async (event) => {
     event.preventDefault();
@@ -100,15 +105,15 @@ function App() {
         return;
       }
 
-      // --------------------------------
+      // ==========================================
       // SAVE JWT ACCESS TOKEN
-      // --------------------------------
+      // ==========================================
 
       localStorage.setItem("access_token", data.access);
 
-      // --------------------------------
+      // ==========================================
       // GET USER ROLE
-      // --------------------------------
+      // ==========================================
 
       const role = data.user?.role || data.role;
 
@@ -123,24 +128,24 @@ function App() {
         return;
       }
 
-      // --------------------------------
+      // ==========================================
       // SAVE USER ROLE
-      // --------------------------------
+      // ==========================================
 
       localStorage.setItem("user_role", role);
 
-      // --------------------------------
+      // ==========================================
       // SAVE USERNAME
-      // --------------------------------
+      // ==========================================
 
       localStorage.setItem(
         "current_username",
         data.user?.username || username
       );
 
-      // --------------------------------
+      // ==========================================
       // UPDATE REACT STATE
-      // --------------------------------
+      // ==========================================
 
       setUserRole(role);
       setLoggedIn(true);
@@ -158,9 +163,9 @@ function App() {
     }
   };
 
-  // --------------------------------
-  // REGISTER
-  // --------------------------------
+  // ==========================================
+  // CUSTOMER / FARMER REGISTER
+  // ==========================================
 
   const handleRegister = async (event) => {
     event.preventDefault();
@@ -235,9 +240,9 @@ function App() {
         return;
       }
 
-      // --------------------------------
+      // ==========================================
       // REGISTRATION SUCCESS
-      // --------------------------------
+      // ==========================================
 
       setMessage(
         "✅ Registration successful! Please login with your new account."
@@ -276,9 +281,9 @@ function App() {
     }
   };
 
-  // --------------------------------
+  // ==========================================
   // LOGOUT
-  // --------------------------------
+  // ==========================================
 
   const handleLogout = () => {
     // Remove authentication information
@@ -294,13 +299,17 @@ function App() {
     // Clear password
     setPassword("");
 
+    // Reset registration screens
+    setShowRegister(false);
+    setShowDeliveryPartnerRegister(false);
+
     // Show login screen
     setMessage("Logged out successfully.");
   };
 
-  // --------------------------------
+  // ==========================================
   // RAZORPAY PAYMENT
-  // --------------------------------
+  // ==========================================
 
   const handlePayment = async () => {
     try {
@@ -322,10 +331,10 @@ function App() {
         return;
       }
 
-      // --------------------------------
+      // ==========================================
       // STEP 1:
       // CREATE RAZORPAY ORDER
-      // --------------------------------
+      // ==========================================
 
       const response = await fetch(
         `${API_BASE_URL}/api/payments/${orderId}/create/`,
@@ -360,10 +369,10 @@ function App() {
         paymentData
       );
 
-      // --------------------------------
+      // ==========================================
       // STEP 2:
       // OPEN RAZORPAY CHECKOUT
-      // --------------------------------
+      // ==========================================
 
       if (!window.Razorpay) {
         setMessage(
@@ -391,9 +400,9 @@ function App() {
         order_id:
           paymentData.razorpay_order_id,
 
-        // --------------------------------
+        // ==========================================
         // PAYMENT SUCCESS
-        // --------------------------------
+        // ==========================================
 
         handler: async function (
           paymentResponse
@@ -403,10 +412,10 @@ function App() {
               "Payment successful. Verifying payment..."
             );
 
-            // --------------------------------
+            // ==========================================
             // STEP 3:
             // VERIFY PAYMENT
-            // --------------------------------
+            // ==========================================
 
             const verifyResponse =
               await fetch(
@@ -459,25 +468,25 @@ function App() {
           }
         },
 
-        // --------------------------------
+        // ==========================================
         // CUSTOMER DETAILS
-        // --------------------------------
+        // ==========================================
 
         prefill: {
           name: "AgriConnect Customer",
         },
 
-        // --------------------------------
+        // ==========================================
         // RAZORPAY THEME
-        // --------------------------------
+        // ==========================================
 
         theme: {
           color: "#2e7d32",
         },
 
-        // --------------------------------
+        // ==========================================
         // PAYMENT MODAL
-        // --------------------------------
+        // ==========================================
 
         modal: {
           ondismiss: function () {
@@ -515,6 +524,27 @@ function App() {
   // ==========================================
 
   if (!loggedIn || !userRole) {
+
+    // ==========================================
+    // DELIVERY PARTNER REGISTRATION SCREEN
+    // ==========================================
+
+    if (showDeliveryPartnerRegister) {
+      return (
+        <DeliveryPartnerRegistration
+          onBackToLogin={() => {
+            setShowDeliveryPartnerRegister(false);
+            setShowRegister(false);
+            setMessage("");
+          }}
+        />
+      );
+    }
+
+    // ==========================================
+    // NORMAL LOGIN / CUSTOMER / FARMER REGISTER
+    // ==========================================
+
     return (
       <div className="app-container">
 
@@ -594,7 +624,7 @@ function App() {
               </form>
 
               {/* =================================
-                  REGISTER BUTTON
+                  CUSTOMER / FARMER REGISTER
               ================================= */}
 
               <p className="auth-switch">
@@ -606,16 +636,33 @@ function App() {
                 className="secondary-button"
                 onClick={() => {
                   setShowRegister(true);
+                  setShowDeliveryPartnerRegister(false);
                   setMessage("");
                 }}
               >
                 Create Account
               </button>
+
+              {/* =================================
+                  DELIVERY PARTNER REGISTER
+              ================================= */}
+
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => {
+                  setShowDeliveryPartnerRegister(true);
+                  setShowRegister(false);
+                  setMessage("");
+                }}
+              >
+                🚚 Register as Delivery Partner
+              </button>
             </>
           ) : (
             <>
               {/* =================================
-                  REGISTRATION
+                  CUSTOMER / FARMER REGISTRATION
               ================================= */}
 
               <h2>
@@ -707,7 +754,9 @@ function App() {
                   <select
                     value={registerRole}
                     onChange={(event) =>
-                      setRegisterRole(event.target.value)
+                      setRegisterRole(
+                        event.target.value
+                      )
                     }
                     required
                   >
@@ -740,7 +789,9 @@ function App() {
                         type="text"
                         value={farmName}
                         onChange={(event) =>
-                          setFarmName(event.target.value)
+                          setFarmName(
+                            event.target.value
+                          )
                         }
                         placeholder="Enter farm name"
                         required
@@ -759,7 +810,9 @@ function App() {
                       <textarea
                         value={farmAddress}
                         onChange={(event) =>
-                          setFarmAddress(event.target.value)
+                          setFarmAddress(
+                            event.target.value
+                          )
                         }
                         placeholder="Enter farm address"
                         rows="3"
@@ -780,7 +833,9 @@ function App() {
                         type="text"
                         value={farmVillage}
                         onChange={(event) =>
-                          setFarmVillage(event.target.value)
+                          setFarmVillage(
+                            event.target.value
+                          )
                         }
                         placeholder="Enter village"
                         required
@@ -800,7 +855,9 @@ function App() {
                         type="text"
                         value={farmDistrict}
                         onChange={(event) =>
-                          setFarmDistrict(event.target.value)
+                          setFarmDistrict(
+                            event.target.value
+                          )
                         }
                         placeholder="Enter district"
                         required
@@ -820,7 +877,9 @@ function App() {
                         type="text"
                         value={farmState}
                         onChange={(event) =>
-                          setFarmState(event.target.value)
+                          setFarmState(
+                            event.target.value
+                          )
                         }
                         placeholder="Enter state"
                         required
@@ -840,7 +899,9 @@ function App() {
                         type="text"
                         value={farmPincode}
                         onChange={(event) =>
-                          setFarmPincode(event.target.value)
+                          setFarmPincode(
+                            event.target.value
+                          )
                         }
                         placeholder="Enter pincode"
                         maxLength={10}
@@ -898,11 +959,13 @@ function App() {
                 className="secondary-button"
                 onClick={() => {
                   setShowRegister(false);
+                  setShowDeliveryPartnerRegister(false);
                   setMessage("");
                 }}
               >
                 Back to Login
               </button>
+
             </>
           )}
 
@@ -944,16 +1007,28 @@ function App() {
   }
 
   // ==========================================
+  // DELIVERY PARTNER DASHBOARD
+  // ==========================================
+
+  if (userRole === "DELIVERY_PARTNER") {
+    return (
+      <DeliveryPartnerDashboard
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  // ==========================================
   // ADMIN DASHBOARD
   // ==========================================
 
   if (userRole === "ADMIN") {
     return (
-        <AdminDashboard
-            onLogout={handleLogout}
-        />
+      <AdminDashboard
+        onLogout={handleLogout}
+      />
     );
-}
+  }
 
   // ==========================================
   // UNKNOWN ROLE

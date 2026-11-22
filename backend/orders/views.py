@@ -12,14 +12,13 @@ from rest_framework.permissions import IsAuthenticated
 
 from .models import Order, OrderItem
 from .serializers import OrderSerializer,FarmerOrderSerializer
-from .permissions import IsCustomer, IsAdmin
-
+from .permissions import IsCustomer, IsAdmin, IsDeliveryPartner
 from cart.models import Cart
 from products.models import Product
 
 from notifications.models import Notification
 
-from accounts.models import CustomerAddress
+from accounts.models import CustomerAddress, User
 
 
 class OrderListCreateView(APIView):
@@ -277,6 +276,27 @@ class OrderListCreateView(APIView):
             )
 
         # ---------------------------------------------------------
+        # Notify active admins about the new order
+        # ---------------------------------------------------------
+
+        admin_users = User.objects.filter(
+            role=User.Role.ADMIN,
+            is_active=True
+        )
+
+        for admin_user in admin_users:
+
+            Notification.objects.create(
+                user=admin_user,
+                notification_type=Notification.NotificationType.ORDER_CREATED,
+                title="New Order Created",
+                message=(
+                    f"Customer {request.user.username} created "
+                    f"order #{order.id} for ₹{order.total_amount}."
+                )
+            )
+
+        # ---------------------------------------------------------
         # Return created order
         # ---------------------------------------------------------
 
@@ -411,6 +431,27 @@ class OrderCancelView(APIView):
                 f"Your order #{order.id} has been cancelled successfully."
             )
         )
+
+        # ---------------------------------------------------------
+        # Notify active admins about customer cancellation
+        # ---------------------------------------------------------
+
+        admin_users = User.objects.filter(
+            role=User.Role.ADMIN,
+            is_active=True
+        )
+
+        for admin_user in admin_users:
+
+            Notification.objects.create(
+                user=admin_user,
+                notification_type=Notification.NotificationType.ORDER_CANCELLED,
+                title="Order Cancelled by Customer",
+                message=(
+                    f"Customer {request.user.username} cancelled "
+                    f"order #{order.id}."
+                )
+            )
 
         serializer = OrderSerializer(order)
 
@@ -631,6 +672,29 @@ class OrderStatusUpdateView(APIView):
                         f"{new_status.lower()}."
                     )
                 )
+
+            # -------------------------------------------------
+            # Create an admin notification as an audit record
+            # -------------------------------------------------
+
+            admin_users = User.objects.filter(
+                role=User.Role.ADMIN,
+                is_active=True
+            )
+
+            for admin_user in admin_users:
+
+                Notification.objects.create(
+                    user=admin_user,
+                    notification_type=notification_type,
+                    title=f"Order #{order.id} Status Updated",
+                    message=(
+                        f"Order #{order.id} was changed from "
+                        f"{current_status.lower()} to "
+                        f"{new_status.lower()}."
+                    )
+                )
+
         # ---------------------------------------------------------
         # Return updated order
         # ---------------------------------------------------------
@@ -715,4 +779,456 @@ class FarmerOrderListView(APIView):
 
         return Response(
             serializer.data
+        )
+
+# =========================================================
+# DELIVERY PARTNER ORDERS
+# =========================================================
+
+
+class DeliveryPartnerOrderListView(APIView):
+
+    permission_classes = [IsDeliveryPartner]
+
+    def get(self, request):
+
+        orders = (
+            Order.objects
+            .filter(
+                delivery_partner=request.user
+            )
+            .select_related(
+                "customer",
+                "delivery_partner"
+            )
+            .prefetch_related(
+                "items__product"
+            )
+            .order_by(
+                "-created_at"
+            )
+        )
+
+        serializer = OrderSerializer(
+            orders,
+            many=True
+        )
+
+        return Response(serializer.data)
+
+
+class DeliveryPartnerOrderDetailView(APIView):
+
+    permission_classes = [IsDeliveryPartner]
+
+    def get(self, request, pk):
+
+        try:
+
+            order = (
+                Order.objects
+                .filter(
+                    id=pk,
+                    delivery_partner=request.user
+                )
+                .select_related(
+                    "customer",
+                    "delivery_partner"
+                )
+                .prefetch_related(
+                    "items__product"
+                )
+                .get()
+            )
+
+        except Order.DoesNotExist:
+
+            return Response(
+                {
+                    "detail": "Delivery order not found."
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = OrderSerializer(order)
+
+        return Response(serializer.data)
+
+
+class DeliveryPartnerOrderStatusView(APIView):
+
+    permission_classes = [IsDeliveryPartner]
+
+    @transaction.atomic
+    def put(self, request, pk):
+
+        try:
+
+            order = (
+                Order.objects
+                .select_for_update()
+                .get(
+                    id=pk,
+                    delivery_partner=request.user
+                )
+            )
+
+        except Order.DoesNotExist:
+
+            return Response(
+                {
+                    "detail": "Delivery order not found."
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        new_status = request.data.get("status")
+
+        if not new_status:
+
+            return Response(
+                {
+                    "detail": "Status is required."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ---------------------------------------------------------
+        # Delivery partner can only update delivery-related
+        # statuses.
+        # ---------------------------------------------------------
+
+        allowed_statuses = [
+            Order.Status.SHIPPED,
+            Order.Status.DELIVERED,
+        ]
+
+        if new_status not in allowed_statuses:
+
+            return Response(
+                {
+                    "detail": (
+                        "Delivery partners can only update "
+                        "orders to SHIPPED or DELIVERED."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        current_status = order.status
+
+        # ---------------------------------------------------------
+        # Status transition validation
+        # ---------------------------------------------------------
+
+        allowed_transitions = {
+
+            Order.Status.SHIPPED: [
+                Order.Status.DELIVERED
+            ],
+
+            Order.Status.DELIVERED: [],
+        }
+
+        if current_status not in allowed_transitions:
+
+            return Response(
+                {
+                    "detail": (
+                        f"Order cannot be updated by delivery "
+                        f"partner from status {current_status}."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if new_status not in allowed_transitions[current_status]:
+
+            return Response(
+                {
+                    "detail": (
+                        f"Cannot change order status from "
+                        f"{current_status} to {new_status}."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ---------------------------------------------------------
+        # Update order status
+        # ---------------------------------------------------------
+
+        order.status = new_status
+
+        order.save(
+            update_fields=[
+                "status",
+                "updated_at"
+            ]
+        )
+
+        # ---------------------------------------------------------
+        # Customer notification
+        # ---------------------------------------------------------
+
+        notification_map = {
+
+            Order.Status.DELIVERED: (
+                Notification.NotificationType.ORDER_DELIVERED,
+                "Order Delivered",
+                (
+                    f"Your order #{order.id} has been "
+                    f"delivered successfully."
+                )
+            ),
+        }
+
+        notification_data = notification_map.get(
+            new_status
+        )
+
+        if notification_data:
+
+            notification_type, title, message = notification_data
+
+            Notification.objects.create(
+                user=order.customer,
+                notification_type=notification_type,
+                title=title,
+                message=message
+            )
+
+            # -----------------------------------------------------
+            # Notify farmers
+            # -----------------------------------------------------
+
+            farmer_users = set()
+
+            for item in (
+                OrderItem.objects
+                .select_related(
+                    "product__farmer__user"
+                )
+                .filter(
+                    order=order
+                )
+            ):
+
+                farmer_users.add(
+                    item.product.farmer.user
+                )
+
+            for farmer_user in farmer_users:
+
+                Notification.objects.create(
+                    user=farmer_user,
+                    notification_type=notification_type,
+                    title=title,
+                    message=(
+                        f"Order #{order.id} containing "
+                        f"your product has been delivered."
+                    )
+                )
+
+            # -----------------------------------------------------
+            # Notify admins
+            # -----------------------------------------------------
+
+            admin_users = User.objects.filter(
+                role=User.Role.ADMIN,
+                is_active=True
+            )
+
+            for admin_user in admin_users:
+
+                Notification.objects.create(
+                    user=admin_user,
+                    notification_type=notification_type,
+                    title=f"Order #{order.id} Delivered",
+                    message=(
+                        f"Delivery partner "
+                        f"{request.user.username} marked "
+                        f"order #{order.id} as delivered."
+                    )
+                )
+
+        serializer = OrderSerializer(order)
+
+        return Response(serializer.data)
+
+
+# =========================================================
+# ADMIN - ASSIGN DELIVERY PARTNER
+# =========================================================
+
+class AssignDeliveryPartnerView(APIView):
+
+    permission_classes = [IsAdmin]
+
+    @transaction.atomic
+    def put(self, request, pk):
+
+        # ---------------------------------------------------------
+        # Get order
+        # ---------------------------------------------------------
+
+        try:
+            order = (
+                Order.objects
+                .select_for_update()
+                .select_related(
+                    "customer",
+                    "delivery_partner"
+                )
+                .get(
+                    id=pk
+                )
+            )
+
+        except Order.DoesNotExist:
+
+            return Response(
+                {
+                    "detail": "Order not found."
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # ---------------------------------------------------------
+        # Validate order status
+        # ---------------------------------------------------------
+
+        if order.status in [
+            Order.Status.DELIVERED,
+            Order.Status.CANCELLED,
+        ]:
+
+            return Response(
+                {
+                    "detail": (
+                        "A delivery partner cannot be assigned "
+                        "to a delivered or cancelled order."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ---------------------------------------------------------
+        # Get delivery partner ID
+        # ---------------------------------------------------------
+
+        delivery_partner_id = request.data.get(
+            "delivery_partner_id"
+        )
+
+        if not delivery_partner_id:
+
+            return Response(
+                {
+                    "detail": "delivery_partner_id is required."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ---------------------------------------------------------
+        # Validate delivery partner
+        # ---------------------------------------------------------
+
+        try:
+
+            delivery_partner = User.objects.get(
+                id=delivery_partner_id,
+                role=User.Role.DELIVERY_PARTNER,
+                is_active=True
+            )
+
+        except User.DoesNotExist:
+
+            return Response(
+                {
+                    "detail": (
+                        "Active delivery partner not found."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ---------------------------------------------------------
+        # Assign delivery partner
+        # ---------------------------------------------------------
+
+        order.delivery_partner = delivery_partner
+
+        order.save(
+            update_fields=[
+                "delivery_partner",
+                "updated_at"
+            ]
+        )
+
+        # ---------------------------------------------------------
+        # Notify delivery partner
+        # ---------------------------------------------------------
+
+        Notification.objects.create(
+            user=delivery_partner,
+            notification_type=(
+                Notification.NotificationType.DELIVERY_ASSIGNED
+            ),
+            title="Delivery Assigned",
+            message=(
+                f"Order #{order.id} has been assigned "
+                f"to you for delivery."
+            )
+        )
+
+        # ---------------------------------------------------------
+        # Notify customer
+        # ---------------------------------------------------------
+
+        Notification.objects.create(
+            user=order.customer,
+            notification_type=(
+                Notification.NotificationType.DELIVERY_ASSIGNED
+            ),
+            title="Delivery Partner Assigned",
+            message=(
+                f"A delivery partner has been assigned "
+                f"to your order #{order.id}."
+            )
+        )
+
+        # ---------------------------------------------------------
+        # Notify admins as audit record
+        # ---------------------------------------------------------
+
+        admin_users = User.objects.filter(
+            role=User.Role.ADMIN,
+            is_active=True
+        )
+
+        for admin_user in admin_users:
+
+            Notification.objects.create(
+                user=admin_user,
+                notification_type=(
+                    Notification.NotificationType.DELIVERY_ASSIGNED
+                ),
+                title=f"Delivery Partner Assigned - Order #{order.id}",
+                message=(
+                    f"Delivery partner "
+                    f"{delivery_partner.username} has been assigned "
+                    f"to order #{order.id}."
+                )
+            )
+
+        # ---------------------------------------------------------
+        # Return updated order
+        # ---------------------------------------------------------
+
+        serializer = OrderSerializer(order)
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK
         )

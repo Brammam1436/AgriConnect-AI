@@ -24,3 +24,15 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+
+# Environment files and secrets
+.env.*
+!.env.example
+
+# Python virtual environments
+.venv/
+
+# Build and cache
+.pytest_cache/
+.mypy_cache/

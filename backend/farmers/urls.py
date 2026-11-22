@@ -4,6 +4,8 @@ from .views import (
     FarmerProfileView,
     FarmListCreateView,
     FarmDetailView,
+    AdminFarmerVerificationListView,
+    AdminFarmerVerificationUpdateView,
 )
 
 
@@ -24,5 +26,17 @@ urlpatterns = [
         "farms/<int:pk>/",
         FarmDetailView.as_view(),
         name="farm-detail",
+    ),
+
+    path(
+        "admin/verification/",
+        AdminFarmerVerificationListView.as_view(),
+        name="admin-farmer-verification-list",
+    ),
+
+    path(
+        "admin/verification/<int:pk>/",
+        AdminFarmerVerificationUpdateView.as_view(),
+        name="admin-farmer-verification-update",
     ),
 ]

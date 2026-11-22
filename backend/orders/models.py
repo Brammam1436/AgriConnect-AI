@@ -22,6 +22,15 @@ class Order(models.Model):
         related_name="orders"
     )
 
+    # Delivery partner assigned by admin
+    delivery_partner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="assigned_deliveries",
+        null=True,
+        blank=True,
+    )
+
     # Delivery address snapshot
     # These values are copied from the customer's selected address
     # when the order is created.

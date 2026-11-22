@@ -6,6 +6,10 @@ from .views import (
     OrderCancelView,
     OrderStatusUpdateView,
     FarmerOrderListView,
+    DeliveryPartnerOrderListView,
+    DeliveryPartnerOrderDetailView,
+    DeliveryPartnerOrderStatusView,
+    AssignDeliveryPartnerView
 )
 
 
@@ -51,6 +55,33 @@ urlpatterns = [
         "farmer/",
         FarmerOrderListView.as_view(),
         name="farmer-order-list"
+    ),
+
+    # =========================================================
+    # DELIVERY PARTNER ORDERS
+    # =========================================================
+
+    path(
+        "delivery/",
+        DeliveryPartnerOrderListView.as_view(),
+        name="delivery-order-list"
+    ),
+
+    path(
+        "delivery/<int:pk>/",
+        DeliveryPartnerOrderDetailView.as_view(),
+        name="delivery-order-detail"
+    ),
+
+    path(
+        "delivery/<int:pk>/status/",
+        DeliveryPartnerOrderStatusView.as_view(),
+        name="delivery-order-status"
+    ),
+    path(
+        "<int:pk>/assign-delivery/",
+        AssignDeliveryPartnerView.as_view(),
+        name="assign-delivery-partner",
     ),
 
 ]

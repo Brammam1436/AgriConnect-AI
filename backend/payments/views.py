@@ -14,6 +14,8 @@ from orders.models import Order
 from notifications.models import Notification
 from .models import Payment
 from .serializers import PaymentSerializer
+from accounts.models import User
+
 
 class CreatePaymentOrderView(APIView):
     permission_classes = [IsAuthenticated]
@@ -109,6 +111,7 @@ class VerifyPaymentView(APIView):
             order=order,
             customer=request.user
         )
+
         if payment.status == Payment.Status.SUCCESS:
             return Response(
                 {
@@ -122,7 +125,11 @@ class VerifyPaymentView(APIView):
         razorpay_order_id = request.data.get("razorpay_order_id")
         razorpay_signature = request.data.get("razorpay_signature")
 
-        if not razorpay_payment_id or not razorpay_order_id or not razorpay_signature:
+        if (
+            not razorpay_payment_id
+            or not razorpay_order_id
+            or not razorpay_signature
+        ):
             return Response(
                 {"detail": "Payment verification data is incomplete."},
                 status=status.HTTP_400_BAD_REQUEST
@@ -136,7 +143,10 @@ class VerifyPaymentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        message = f"{payment.razorpay_order_id}|{razorpay_payment_id}"
+        message = (
+            f"{payment.razorpay_order_id}|"
+            f"{razorpay_payment_id}"
+        )
 
         expected_signature = hmac.new(
             settings.RAZORPAY_KEY_SECRET.encode(),
@@ -144,16 +154,32 @@ class VerifyPaymentView(APIView):
             hashlib.sha256
         ).hexdigest()
 
+        # =========================================================
+        # PAYMENT FAILED
+        # =========================================================
+
         if not hmac.compare_digest(
             expected_signature,
             razorpay_signature
         ):
             payment.status = Payment.Status.FAILED
-            payment.save(update_fields=["status", "updated_at"])
+
+            payment.save(
+                update_fields=[
+                    "status",
+                    "updated_at"
+                ]
+            )
+
+            # -----------------------------------------------------
+            # Customer notification
+            # -----------------------------------------------------
 
             Notification.objects.create(
                 user=request.user,
-                notification_type=Notification.NotificationType.PAYMENT_FAILED,
+                notification_type=(
+                    Notification.NotificationType.PAYMENT_FAILED
+                ),
                 title="Payment Failed",
                 message=(
                     f"Payment for order #{order.id} "
@@ -161,19 +187,58 @@ class VerifyPaymentView(APIView):
                 )
             )
 
+            # -----------------------------------------------------
+            # Admin notification
+            # -----------------------------------------------------
+
+            admin_users = User.objects.filter(
+                role=User.Role.ADMIN,
+                is_active=True
+            )
+
+            for admin_user in admin_users:
+
+                Notification.objects.create(
+                    user=admin_user,
+                    notification_type=(
+                        Notification.NotificationType.PAYMENT_FAILED
+                    ),
+                    title="Payment Failed",
+                    message=(
+                        f"Payment verification failed for "
+                        f"order #{order.id} from customer "
+                        f"{request.user.username}."
+                    )
+                )
+
             return Response(
-                {"detail": "Payment signature verification failed."},
+                {
+                    "detail": (
+                        "Payment signature verification failed."
+                    )
+                },
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        # =========================================================
+        # PAYMENT SUCCESS
+        # =========================================================
 
         payment.razorpay_payment_id = razorpay_payment_id
         payment.razorpay_signature = razorpay_signature
         payment.status = Payment.Status.SUCCESS
+
         payment.save()
+
+        # ---------------------------------------------------------
+        # Customer notification
+        # ---------------------------------------------------------
 
         Notification.objects.create(
             user=request.user,
-            notification_type=Notification.NotificationType.PAYMENT_SUCCESS,
+            notification_type=(
+                Notification.NotificationType.PAYMENT_SUCCESS
+            ),
             title="Payment Successful",
             message=(
                 f"Payment for order #{order.id} "
@@ -181,9 +246,45 @@ class VerifyPaymentView(APIView):
             )
         )
 
+        # ---------------------------------------------------------
+        # Admin notification
+        # ---------------------------------------------------------
+
+        admin_users = User.objects.filter(
+            role=User.Role.ADMIN,
+            is_active=True
+        )
+
+        for admin_user in admin_users:
+
+            Notification.objects.create(
+                user=admin_user,
+                notification_type=(
+                    Notification.NotificationType.PAYMENT_SUCCESS
+                ),
+                title="Payment Successful",
+                message=(
+                    f"Payment for order #{order.id} "
+                    f"was successfully received from "
+                    f"customer {request.user.username}."
+                )
+            )
+
+        # ---------------------------------------------------------
+        # Confirm order after successful payment
+        # ---------------------------------------------------------
+
         if order.status == Order.Status.PENDING:
+
             order.status = Order.Status.CONFIRMED
-            order.save(update_fields=["status", "updated_at"])
+
+            order.save(
+                update_fields=[
+                    "status",
+                    "updated_at"
+                ]
+            )
+
         return Response(
             {
                 "message": "Payment verified successfully.",

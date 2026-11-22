@@ -1,9 +1,9 @@
 from rest_framework import serializers
-from .models import User, CustomerAddress
+from .models import User, CustomerAddress,DeliveryPartnerProfile
 from django.contrib.auth import password_validation
 from django.db import transaction
 from farmers.models import FarmerProfile
-
+from notifications.models import Notification
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -124,6 +124,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         # Automatically create FarmerProfile
         # for farmer accounts.
         if user.role == "FARMER":
+
             FarmerProfile.objects.create(
                 user=user,
                 farm_name=farm_name,
@@ -134,6 +135,232 @@ class RegisterSerializer(serializers.ModelSerializer):
                 state=state,
                 pincode=pincode,
             )
+
+            # ---------------------------------------------------------
+            # Notify active admins about new farmer registration
+            # ---------------------------------------------------------
+
+            admin_users = User.objects.filter(
+                role=User.Role.ADMIN,
+                is_active=True
+            )
+
+            for admin_user in admin_users:
+
+                Notification.objects.create(
+                    user=admin_user,
+                    notification_type=(
+                        Notification.NotificationType.ORDER_CREATED
+                    ),
+                    title="New Farmer Registration",
+                    message=(
+                        f"Farmer {user.username} has registered "
+                        f"with farm '{farm_name}' and is waiting "
+                        f"for verification."
+                    )
+                )
+
+        return user
+
+class DeliveryPartnerRegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(
+        write_only=True,
+        min_length=8
+    )
+
+    confirm_password = serializers.CharField(
+        write_only=True
+    )
+
+    full_name = serializers.CharField(
+        max_length=100
+    )
+
+    phone = serializers.CharField(
+        max_length=15
+    )
+
+    address_line1 = serializers.CharField(
+        max_length=255
+    )
+
+    address_line2 = serializers.CharField(
+        max_length=255,
+        required=False,
+        allow_blank=True
+    )
+
+    city = serializers.CharField(
+        max_length=100
+    )
+
+    district = serializers.CharField(
+        max_length=100
+    )
+
+    state = serializers.CharField(
+        max_length=100
+    )
+
+    postal_code = serializers.CharField(
+        max_length=10
+    )
+
+    vehicle_type = serializers.ChoiceField(
+        choices=DeliveryPartnerProfile.VehicleType.choices
+    )
+
+    vehicle_number = serializers.CharField(
+        max_length=30
+    )
+
+    driving_license_number = serializers.CharField(
+        max_length=50
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            "username",
+            "email",
+            "phone",
+            "password",
+            "confirm_password",
+
+            "full_name",
+
+            "address_line1",
+            "address_line2",
+            "city",
+            "district",
+            "state",
+            "postal_code",
+
+            "vehicle_type",
+            "vehicle_number",
+            "driving_license_number",
+        ]
+
+    def validate_username(self, value):
+        if User.objects.filter(
+            username=value
+        ).exists():
+            raise serializers.ValidationError(
+                "This username is already taken."
+            )
+
+        return value
+
+    def validate_email(self, value):
+        if User.objects.filter(
+            email=value
+        ).exists():
+            raise serializers.ValidationError(
+                "This email is already registered."
+            )
+
+        return value
+
+    def validate_phone(self, value):
+        if not value.isdigit():
+            raise serializers.ValidationError(
+                "Phone number must contain only digits."
+            )
+
+        if len(value) < 10 or len(value) > 15:
+            raise serializers.ValidationError(
+                "Phone number must be between 10 and 15 digits."
+            )
+
+        return value
+
+    def validate_vehicle_number(self, value):
+        value = value.strip().upper()
+
+        if DeliveryPartnerProfile.objects.filter(
+            vehicle_number__iexact=value
+        ).exists():
+            raise serializers.ValidationError(
+                "This vehicle number is already registered."
+            )
+
+        return value
+
+    def validate_driving_license_number(self, value):
+        value = value.strip().upper()
+
+        if DeliveryPartnerProfile.objects.filter(
+            driving_license_number__iexact=value
+        ).exists():
+            raise serializers.ValidationError(
+                "This driving licence number is already registered."
+            )
+
+        return value
+
+    def validate(self, attrs):
+        password = attrs.get("password")
+        confirm_password = attrs.get("confirm_password")
+
+        if password != confirm_password:
+            raise serializers.ValidationError({
+                "confirm_password": "Passwords do not match."
+            })
+
+        try:
+            password_validation.validate_password(
+                password
+            )
+        except serializers.ValidationError as error:
+            raise serializers.ValidationError({
+                "password": error.messages
+            })
+
+        return attrs
+
+    @transaction.atomic
+    def create(self, validated_data):
+
+        validated_data.pop("confirm_password")
+
+        username = validated_data.pop("username")
+        email = validated_data.pop("email")
+        phone = validated_data.pop("phone")
+        password = validated_data.pop("password")
+
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            phone=phone,
+            role=User.Role.DELIVERY_PARTNER,
+            password=password,
+            is_active=False,
+        )
+
+        DeliveryPartnerProfile.objects.create(
+            user=user,
+            full_name=validated_data["full_name"],
+            phone=phone,
+            address_line1=validated_data["address_line1"],
+            address_line2=validated_data.get(
+                "address_line2",
+                ""
+            ),
+            city=validated_data["city"],
+            district=validated_data["district"],
+            state=validated_data["state"],
+            postal_code=validated_data["postal_code"],
+            vehicle_type=validated_data["vehicle_type"],
+            vehicle_number=validated_data["vehicle_number"],
+            driving_license_number=validated_data[
+                "driving_license_number"
+            ],
+            approval_status=(
+                DeliveryPartnerProfile
+                .ApprovalStatus
+                .PENDING
+            ),
+        )
 
         return user
 
@@ -268,3 +495,43 @@ class CustomerAddressSerializer(serializers.ModelSerializer):
             instance,
             validated_data
         )
+
+class AdminDeliveryPartnerSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source="user.username", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
+    user_id = serializers.IntegerField(source="user.id", read_only=True)
+    is_active = serializers.BooleanField(source="user.is_active", read_only=True)
+
+    class Meta:
+        model = DeliveryPartnerProfile
+        fields = [
+            "id",
+            "user_id",
+            "username",
+            "email",
+            "full_name",
+            "phone",
+            "address_line1",
+            "address_line2",
+            "city",
+            "district",
+            "state",
+            "postal_code",
+            "vehicle_type",
+            "vehicle_number",
+            "driving_license_number",
+            "approval_status",
+            "rejection_reason",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "user_id",
+            "username",
+            "email",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]

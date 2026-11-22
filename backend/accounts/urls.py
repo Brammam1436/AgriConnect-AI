@@ -12,6 +12,10 @@ from .views import (
     AdminOrderListView,
     AdminOrderDetailView,
     AdminPaymentListView,
+    DeliveryPartnerRegisterView,
+    AdminDeliveryPartnerListView,
+    AdminDeliveryPartnerApproveView,
+    AdminDeliveryPartnerRejectView,
 )
 from .views import (
     MeView,
@@ -35,4 +39,22 @@ urlpatterns = [
     path("change-password/",ChangePasswordView.as_view(),name="change-password"),
     path("addresses/",CustomerAddressListCreateView.as_view(),name="customer-address-list-create"),
     path("addresses/<int:pk>/",CustomerAddressDetailView.as_view(),name="customer-address-detail"),
+    path("delivery-partner/register/",DeliveryPartnerRegisterView.as_view(),name="delivery-partner-register"),
+    path(
+        "admin/delivery-partners/",
+        AdminDeliveryPartnerListView.as_view(),
+        name="admin-delivery-partners",
+    ),
+
+    path(
+        "admin/delivery-partners/<int:pk>/approve/",
+        AdminDeliveryPartnerApproveView.as_view(),
+        name="admin-delivery-partner-approve",
+    ),
+
+    path(
+        "admin/delivery-partners/<int:pk>/reject/",
+        AdminDeliveryPartnerRejectView.as_view(),
+        name="admin-delivery-partner-reject",
+    ),
 ]

@@ -1,6 +1,3 @@
-from django.db import models
-
-# Create your models here.
 from django.conf import settings
 from django.db import models
 
@@ -16,6 +13,16 @@ class Notification(models.Model):
         ORDER_SHIPPED = "ORDER_SHIPPED", "Order Shipped"
         ORDER_DELIVERED = "ORDER_DELIVERED", "Order Delivered"
         ORDER_CANCELLED = "ORDER_CANCELLED", "Order Cancelled"
+
+        # Farmer notifications
+        FARMER_REGISTERED = "FARMER_REGISTERED", "Farmer Registered"
+        FARMER_VERIFIED = "FARMER_VERIFIED", "Farmer Verified"
+        FARMER_REJECTED = "FARMER_REJECTED", "Farmer Rejected"
+
+        # Review notifications
+        REVIEW_CREATED = "REVIEW_CREATED", "Review Created"
+
+        DELIVERY_ASSIGNED = "DELIVERY_ASSIGNED", "Delivery Assigned"
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

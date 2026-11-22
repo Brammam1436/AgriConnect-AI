@@ -25,3 +25,16 @@ class IsAdmin(BasePermission):
             and request.user.is_authenticated
             and request.user.role == "ADMIN"
         )
+
+
+class IsDeliveryPartner(BasePermission):
+
+    message = "Only delivery partners can access delivery orders."
+
+    def has_permission(self, request, view):
+
+        return (
+            request.user
+            and request.user.is_authenticated
+            and request.user.role == "DELIVERY_PARTNER"
+        )

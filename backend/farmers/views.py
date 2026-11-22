@@ -4,8 +4,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import FarmerProfile, Farm
-from .permissions import IsFarmer
+from .permissions import IsFarmer, IsAdmin
 from .serializers import FarmerProfileSerializer, FarmSerializer
+from notifications.models import Notification
 
 
 class FarmerProfileView(APIView):
@@ -215,4 +216,116 @@ class FarmDetailView(APIView):
                 "message": "Farm deleted successfully."
             },
             status=status.HTTP_204_NO_CONTENT,
+        )
+
+class AdminFarmerVerificationListView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        profiles = (
+            FarmerProfile.objects
+            .select_related("user")
+            .prefetch_related("farms")
+            .order_by("-created_at")
+        )
+
+        serializer = FarmerProfileSerializer(
+            profiles,
+            many=True,
+        )
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK,
+        )
+
+
+class AdminFarmerVerificationUpdateView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def put(self, request, pk):
+        try:
+            profile = FarmerProfile.objects.select_related("user").get(
+                id=pk
+            )
+        except FarmerProfile.DoesNotExist:
+            return Response(
+                {
+                    "message": "Farmer profile not found."
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        is_verified = request.data.get("is_verified")
+
+        if is_verified is None:
+            return Response(
+                {
+                    "message": "is_verified field is required."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not isinstance(is_verified, bool):
+            return Response(
+                {
+                    "message": "is_verified must be true or false."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Store the previous verification status
+        previous_status = profile.is_verified
+
+        # Update farmer verification status
+        profile.is_verified = is_verified
+        profile.save(update_fields=["is_verified"])
+
+        # ---------------------------------------------------------
+        # Notify farmer about verification status
+        # ---------------------------------------------------------
+
+        # Farmer approved
+        if is_verified and not previous_status:
+            Notification.objects.create(
+                user=profile.user,
+                notification_type=(
+                    Notification.NotificationType.FARMER_VERIFIED
+                ),
+                title="Farmer Verification Successful",
+                message=(
+                    "Your farmer profile has been verified by the "
+                    "administrator. You can now start selling your "
+                    "agricultural products."
+                ),
+            )
+
+        # Farmer rejected
+        elif not is_verified and previous_status:
+            Notification.objects.create(
+                user=profile.user,
+                notification_type=(
+                    Notification.NotificationType.FARMER_REJECTED
+                ),
+                title="Farmer Verification Rejected",
+                message=(
+                    "Your farmer verification has been rejected by "
+                    "the administrator. Please review your farm "
+                    "information and contact the administrator "
+                    "if you need assistance."
+                ),
+            )
+
+        serializer = FarmerProfileSerializer(profile)
+
+        return Response(
+            {
+                "message": (
+                    "Farmer verified successfully."
+                    if is_verified
+                    else "Farmer verification rejected."
+                ),
+                "farmer": serializer.data,
+            },
+            status=status.HTTP_200_OK,
         )

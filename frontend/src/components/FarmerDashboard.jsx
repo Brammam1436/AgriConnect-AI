@@ -50,6 +50,9 @@ function FarmerDashboard({ onLogout }) {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [productSearch, setProductSearch] = useState("");
+    const [productCategoryFilter, setProductCategoryFilter] = useState("ALL");
+    const [productSort, setProductSort] = useState("NEWEST");
 
     const [unreadCount, setUnreadCount] = useState(0);
 
@@ -372,6 +375,68 @@ function FarmerDashboard({ onLogout }) {
     };
 
     // =========================================================
+    // PRODUCT FORM VALIDATION
+    // =========================================================
+
+    const validateProductForm = () => {
+        const name = formData.name.trim();
+        const price = Number(formData.price_per_kg);
+        const quantity = Number(formData.available_quantity);
+
+        const validCategories = [
+            "VEGETABLE",
+            "FRUIT",
+            "GRAIN",
+            "PULSE",
+            "SPICE",
+            "OTHER",
+        ];
+
+        const validUnits = [
+            "kg",
+            "gram",
+            "liter",
+            "piece",
+        ];
+
+        if (!name) {
+            return "Product name is required.";
+        }
+
+        if (name.length < 2) {
+            return "Product name must contain at least 2 characters.";
+        }
+
+        if (!validCategories.includes(formData.category)) {
+            return "Please select a valid product category.";
+        }
+
+        if (formData.price_per_kg === "" || !Number.isFinite(price) || price <= 0) {
+            return "Price must be greater than 0.";
+        }
+
+        if (formData.available_quantity === "" || !Number.isFinite(quantity) || quantity <= 0) {
+            return "Available quantity must be greater than 0.";
+        }
+
+        if (!validUnits.includes(formData.unit)) {
+            return "Please select a valid unit.";
+        }
+
+        if (formData.image) {
+            if (!formData.image.type?.startsWith("image/")) {
+                return "Please select a valid image file.";
+            }
+
+            if (formData.image.size > 5 * 1024 * 1024) {
+                return "Product image must be 5 MB or smaller.";
+            }
+        }
+
+        return "";
+    };
+
+    // =========================================================
     // RESET PRODUCT FORM
     // =========================================================
 
@@ -397,6 +462,13 @@ function FarmerDashboard({ onLogout }) {
 
     const handleAddProduct = async (event) => {
         event.preventDefault();
+
+        const validationError = validateProductForm();
+
+        if (validationError) {
+            setFormError(validationError);
+            return;
+        }
 
         try {
             setFormLoading(true);
@@ -471,13 +543,23 @@ function FarmerDashboard({ onLogout }) {
                 err
             );
 
-            setFormError(
-                err.response?.data
-                    ? JSON.stringify(
-                        err.response.data
-                    )
-                    : "Unable to add product."
-            );
+            const errorData = err.response?.data;
+
+            if (errorData && typeof errorData === "object") {
+                const messages = Object.entries(errorData)
+                    .flatMap(([field, value]) => {
+                        const values = Array.isArray(value) ? value : [value];
+                        return values.map((message) => `${field}: ${message}`);
+                    });
+
+                setFormError(
+                    messages.length > 0
+                        ? messages.join(" | ")
+                        : "Unable to add product."
+                );
+            } else {
+                setFormError("Unable to add product.");
+            }
         } finally {
             setFormLoading(false);
         }
@@ -491,6 +573,13 @@ function FarmerDashboard({ onLogout }) {
         event.preventDefault();
 
         if (!editingProduct) {
+            return;
+        }
+
+        const validationError = validateProductForm();
+
+        if (validationError) {
+            setFormError(validationError);
             return;
         }
 
@@ -572,13 +661,23 @@ function FarmerDashboard({ onLogout }) {
                 err
             );
 
-            setFormError(
-                err.response?.data
-                    ? JSON.stringify(
-                        err.response.data
-                    )
-                    : "Unable to update product."
-            );
+            const errorData = err.response?.data;
+
+            if (errorData && typeof errorData === "object") {
+                const messages = Object.entries(errorData)
+                    .flatMap(([field, value]) => {
+                        const values = Array.isArray(value) ? value : [value];
+                        return values.map((message) => `${field}: ${message}`);
+                    });
+
+                setFormError(
+                    messages.length > 0
+                        ? messages.join(" | ")
+                        : "Unable to update product."
+                );
+            } else {
+                setFormError("Unable to update product.");
+            }
         } finally {
             setFormLoading(false);
         }
@@ -1104,6 +1203,54 @@ function FarmerDashboard({ onLogout }) {
 
             fetchUnreadNotifications();
         };
+
+    //search//
+
+    const filteredProducts = products
+        .filter((product) => {
+            const search = productSearch.trim().toLowerCase();
+
+            if (!search) {
+                return true;
+            }
+
+            return product.name?.toLowerCase().includes(search);
+        })
+        .filter((product) => {
+            if (productCategoryFilter === "ALL") {
+                return true;
+            }
+
+            return product.category === productCategoryFilter;
+        })
+        .sort((a, b) => {
+            switch (productSort) {
+                case "PRICE_LOW":
+                    return Number(a.price_per_kg || 0) - Number(b.price_per_kg || 0);
+
+                case "PRICE_HIGH":
+                    return Number(b.price_per_kg || 0) - Number(a.price_per_kg || 0);
+
+                case "QUANTITY_LOW":
+                    return Number(a.available_quantity || 0) - Number(b.available_quantity || 0);
+
+                case "QUANTITY_HIGH":
+                    return Number(b.available_quantity || 0) - Number(a.available_quantity || 0);
+
+                case "OLDEST":
+                    return new Date(a.created_at) - new Date(b.created_at);
+
+                case "NEWEST":
+                default:
+                    return new Date(b.created_at) - new Date(a.created_at);
+            }
+        });
+
+    const resetProductFilters = () => {
+        setProductSearch("");
+        setProductCategoryFilter("ALL");
+        setProductSort("NEWEST");
+    };
 
     // =========================================================
     // FARMER SALES ANALYTICS
@@ -1757,6 +1904,121 @@ function FarmerDashboard({ onLogout }) {
 
                 </div>
 
+                {!showForm && products.length > 0 && (
+                    <div
+                        className="farmer-quick-card farmer-product-filter-card"
+                        style={{
+                            marginTop: "20px",
+                            marginBottom: "20px",
+                        }}
+                    >
+                        <div
+                            className="farmer-card-heading"
+                            style={{ marginBottom: "16px" }}
+                        >
+                            <div>
+                                <span>PRODUCT SEARCH</span>
+                                <h3>Find Your Products</h3>
+                            </div>
+
+                            <span className="farmer-card-icon">🔎</span>
+                        </div>
+
+                        <div
+                            className="farmer-product-filter-controls"
+                            style={{
+                                display: "grid",
+                                gridTemplateColumns:
+                                    "minmax(220px, 1.5fr) minmax(180px, 1fr) minmax(180px, 1fr) auto",
+                                gap: "12px",
+                                alignItems: "end",
+                            }}
+                        >
+                            <div className="product-form-field">
+                                <label htmlFor="farmer-product-search">
+                                    Search Product
+                                </label>
+                                <input
+                                    id="farmer-product-search"
+                                    type="text"
+                                    value={productSearch}
+                                    onChange={(event) =>
+                                        setProductSearch(event.target.value)
+                                    }
+                                    placeholder="Search by product name..."
+                                />
+                            </div>
+
+                            <div className="product-form-field">
+                                <label htmlFor="farmer-product-category-filter">
+                                    Category
+                                </label>
+                                <select
+                                    id="farmer-product-category-filter"
+                                    value={productCategoryFilter}
+                                    onChange={(event) =>
+                                        setProductCategoryFilter(event.target.value)
+                                    }
+                                >
+                                    <option value="ALL">All Categories</option>
+                                    <option value="VEGETABLE">Vegetable</option>
+                                    <option value="FRUIT">Fruit</option>
+                                    <option value="GRAIN">Grain</option>
+                                    <option value="PULSE">Pulse</option>
+                                    <option value="SPICE">Spice</option>
+                                    <option value="OTHER">Other</option>
+                                </select>
+                            </div>
+
+                            <div className="product-form-field">
+                                <label htmlFor="farmer-product-sort">
+                                    Sort By
+                                </label>
+                                <select
+                                    id="farmer-product-sort"
+                                    value={productSort}
+                                    onChange={(event) =>
+                                        setProductSort(event.target.value)
+                                    }
+                                >
+                                    <option value="NEWEST">Newest First</option>
+                                    <option value="OLDEST">Oldest First</option>
+                                    <option value="PRICE_LOW">
+                                        Price: Low to High
+                                    </option>
+                                    <option value="PRICE_HIGH">
+                                        Price: High to Low
+                                    </option>
+                                    <option value="QUANTITY_LOW">
+                                        Quantity: Low to High
+                                    </option>
+                                    <option value="QUANTITY_HIGH">
+                                        Quantity: High to Low
+                                    </option>
+                                </select>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="farmer-secondary-button"
+                                onClick={resetProductFilters}
+                                disabled={
+                                    !productSearch &&
+                                    productCategoryFilter === "ALL" &&
+                                    productSort === "NEWEST"
+                                }
+                            >
+                                Reset
+                            </button>
+                        </div>
+
+                        <p style={{ marginTop: "12px", marginBottom: 0 }}>
+                            Showing <strong>{filteredProducts.length}</strong>{" "}
+                            of <strong>{products.length}</strong> products
+                        </p>
+                    </div>
+                )}
+
                 {showForm && (
                     <form
                         className="add-product-form"
@@ -1895,7 +2157,7 @@ function FarmerDashboard({ onLogout }) {
                                         handleInputChange
                                     }
                                     placeholder="Example: 55"
-                                    min="0"
+                                    min="0.01"
                                     step="0.01"
                                     required
                                 />
@@ -1916,7 +2178,7 @@ function FarmerDashboard({ onLogout }) {
                                         handleInputChange
                                     }
                                     placeholder="Example: 100"
-                                    min="0"
+                                    min="0.01"
                                     step="0.01"
                                     required
                                 />
@@ -2076,10 +2338,35 @@ function FarmerDashboard({ onLogout }) {
 
                 {!loading &&
                     !error &&
-                    products.length > 0 && (
+                    products.length > 0 &&
+                    filteredProducts.length === 0 && (
+                        <div className="farmer-state-card">
+                            <span className="farmer-empty-icon">🔎</span>
+
+                            <h3>No matching products</h3>
+
+                            <p>
+                                No products match your current search or
+                                filter. Try a different product name or
+                                category.
+                            </p>
+
+                            <button
+                                type="button"
+                                className="farmer-primary-button"
+                                onClick={resetProductFilters}
+                            >
+                                Reset Filters
+                            </button>
+                        </div>
+                    )}
+
+                {!loading &&
+                    !error &&
+                    filteredProducts.length > 0 && (
                         <div className="farmer-products-grid">
 
-                            {products.map(
+                            {filteredProducts.map(
                                 (product) => (
 
                                     <div
