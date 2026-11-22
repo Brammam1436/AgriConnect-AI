@@ -97,6 +97,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
@@ -105,8 +106,17 @@ DATABASES = {
         "PASSWORD": os.getenv("DB_PASSWORD"),
         "HOST": os.getenv("DB_HOST", "localhost"),
         "PORT": os.getenv("DB_PORT", "3306"),
+        "OPTIONS": {},
     }
 }
+
+# Enable verified TLS for the cloud database
+if os.getenv("DB_SSL", "false").lower() == "true":
+    DATABASES["default"]["OPTIONS"] = {
+        "ssl_verify_cert": True,
+        "ssl_verify_identity": True,
+    }
+
 
 
 # Password validation
